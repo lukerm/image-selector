@@ -13,22 +13,34 @@ def create_image_grid(img):
     """
     Create a 3x3 grid of the same image img
     """
+    pad = 2
+    img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
+
     grid = html.Div(
         html.Table([
             html.Tr([
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
             ]),
             html.Tr([
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
             ]),
             html.Tr([
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
-                html.Td(html.Div(html.Img(src=img), style={'padding': 0})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+            ]),
+            html.Tr([
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
+                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
             ]),
         ])
     )
@@ -44,7 +56,7 @@ static_image_route = '/static/'
 app.layout = html.Div(
     children=[
         html.H2("Happy Frog"),
-        html.Div(create_image_grid(static_image_route + 'happyFrog.jpg'))
+        html.Div(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'display': 'block'}),
     ]
 )
 
