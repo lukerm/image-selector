@@ -55,8 +55,15 @@ static_image_route = '/static/'
 # App's layout
 app.layout = html.Div(
     children=[
-        html.H2("Happy Frog"),
-        html.Div(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'display': 'block'}),
+        html.H2("Happy Frogs"),
+        html.Div([
+            html.Table([
+            html.Tr([
+                html.Td(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
+                html.Td(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
+            ]),
+            ]),
+        ]),
     ]
 )
 
