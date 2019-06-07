@@ -19,23 +19,25 @@ n_row, n_col = 7, 5
 app.layout = html.Div(
     children=[
         html.H2("Happy Frogs"),
-        dcc.Dropdown(
-            id='choose-image',
-            options=[{'label': 'happy frog original', 'value': 'happyFrog.jpg'},],
-            value='happyFrog.jpg',
-            style={'width': '10vw',}
-        ),
-        dcc.Dropdown(
-            id='choose-grid-size',
-            options=[
-                {'label': '2 x 2', 'value': 2},
-                {'label': '3 x 3', 'value': 3},
-                {'label': '4 x 4', 'value': 4},
-                {'label': '5 x 5', 'value': 5},
-            ],
-            value=2,
-            style={'width': '10vw'}
-        ),
+        html.Div([
+            dcc.Dropdown(
+                id='choose-image',
+                options=[{'label': 'happy frog original', 'value': 'happyFrog.jpg'},],
+                value='happyFrog.jpg',
+                style={'width': '12vw', 'display': 'inline-block'}
+            ),
+            dcc.Dropdown(
+                id='choose-grid-size',
+                options=[
+                    {'label': '2 x 2', 'value': 2},
+                    {'label': '3 x 3', 'value': 3},
+                    {'label': '4 x 4', 'value': 4},
+                    {'label': '5 x 5', 'value': 5},
+                ],
+                value=2,
+                style={'width': '5vw', 'display': 'inline-block'}
+            ),
+        ]),
         html.Div([
             html.Table([
                 html.Tr([
