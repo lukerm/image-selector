@@ -9,41 +9,16 @@ import flask
 app = dash.Dash(__name__)
 
 
-def create_image_grid(img):
+def create_image_grid(img, n_row, n_col):
     """
-    Create a 3x3 grid of the same image img
+    Create a grid of the same image img with n_row rows and n_col columns
     """
     pad = 2
     img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
-    grid = html.Div(
-        html.Table([
-            html.Tr([
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-            ]),
-            html.Tr([
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-            ]),
-            html.Tr([
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-            ]),
-            html.Tr([
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-                html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad})),
-            ]),
-        ])
-    )
+    grid_element = html.Td(html.Div(html.Img(src=img, style=img_style), style={'padding': pad}))
+    one_row = html.Tr([grid_element] * n_col)
+    grid = html.Div(html.Table([one_row] * n_row))
 
     return grid
 
@@ -53,15 +28,22 @@ image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img
 static_image_route = '/static/'
 
 # App's layout
+n_row, n_col = 7, 5
 app.layout = html.Div(
     children=[
         html.H2("Happy Frogs"),
         html.Div([
             html.Table([
-            html.Tr([
-                html.Td(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
-                html.Td(create_image_grid(static_image_route + 'happyFrog.jpg'), style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
-            ]),
+                html.Tr([
+                    html.Td(
+                        create_image_grid(static_image_route + 'happyFrog.jpg', n_row, n_col),
+                        style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
+                        ),
+                    html.Td(
+                        create_image_grid(static_image_route + 'happyFrog.jpg', n_row, n_col),
+                        style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
+                        ),
+                ]),
             ]),
         ]),
     ]
