@@ -14,11 +14,36 @@ app = dash.Dash(__name__)
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 static_image_route = '/static/'
 
+
+def create_image_grid(img_fname, n_row, n_col):
+    """
+    Create a grid of the same image img with n_row rows and n_col columns
+    """
+    img_path = static_image_route + img_fname
+    pad = 2
+    img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
+
+    def get_grid_element(x, y):
+        my_id = f'grid-{x}-{y}'
+        return html.Td(id=my_id, children=html.Div(html.Img(src=img_path, style=img_style), style={'padding': pad}))
+
+    grid = []
+    for i in range(n_row):
+        row = []
+        for j in range(n_col):
+            row.append(get_grid_element(i, j))
+        row = html.Tr(row)
+        grid.append(row)
+
+    return html.Div(html.Table(grid))
+
+
 # App's layout
 n_row, n_col = 7, 5
 app.layout = html.Div(
     children=[
         html.H2("Happy Frogs"),
+        html.Button('Highlight top left', id='button'),
         html.Div([
             dcc.Dropdown(
                 id='choose-image',
@@ -43,6 +68,7 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-frogs',
+                        children=create_image_grid('happyFrog.jpg', 2, 2),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
 #                    html.Td(
@@ -56,25 +82,23 @@ app.layout = html.Div(
 )
 
 
+
 @app.callback(
     Output('responsive-frogs', 'children'),
     [Input('choose-image', 'value'),
      Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value')]
 )
-def create_image_grid(img_fname, n_row, n_col):
-    """
-    Create a grid of the same image img with n_row rows and n_col columns
-    """
-    img_path = static_image_route + img_fname
-    pad = 2
-    img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
+def create_reactive_image_grid(img_fname, n_row, n_col):
+    return create_image_grid(img_fname, n_row, n_col)
 
-    grid_element = html.Td(html.Div(html.Img(src=img_path, style=img_style), style={'padding': pad}))
-    one_row = html.Tr([grid_element] * n_col)
-    grid = html.Div(html.Table([one_row] * n_row))
 
-    return grid
+@app.callback(
+    Output('grid-0-0', 'style'),
+    [Input('button', 'n_clicks')]
+)
+def change_style(n):
+    return {'padding': 5, 'border-style': 'solid', 'border-color': 'red'}
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
