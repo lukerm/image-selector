@@ -24,8 +24,15 @@ def create_image_grid(img_fname, n_row, n_col):
     img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
     def get_grid_element(x, y):
-        my_id = f'grid-{x}-{y}'
-        return html.Td(id=my_id, children=html.Div(html.Img(src=img_path, style=img_style), style={'padding': pad}))
+        my_id = f'{x}-{y}'
+        return html.Td(id='grid-td-' + my_id,
+                       className='focus-off',
+                       children=html.Button(id='grid-button-' + my_id,
+                                            children=html.Img(src=img_path, style=img_style),
+                                            style={'padding': pad},
+                                            ),
+                       style={'border-color': 'white'} # focus off at beginning
+                       )
 
     grid = []
     for i in range(n_row):
@@ -43,7 +50,6 @@ n_row, n_col = 7, 5
 app.layout = html.Div(
     children=[
         html.H2("Happy Frogs"),
-        html.Button('Highlight top left', id='button'),
         html.Div([
             dcc.Dropdown(
                 id='choose-image',
@@ -94,11 +100,26 @@ def create_reactive_image_grid(img_fname, n_row, n_col):
 
 
 @app.callback(
-    Output('grid-0-0', 'style'),
-    [Input('button', 'n_clicks')]
+    Output('grid-td-0-0', 'className'),
+    [Input('grid-button-0-0', 'n_clicks')]
 )
 def change_style(n):
-    return {'padding': 5, 'border-style': 'solid', 'border-color': 'red'}
+    if n is None or n % 2 == 0:
+        return 'focus-off'
+    else:
+        return 'focus-on'
+
+
+@app.callback(
+    Output('grid-td-0-0', 'style'),
+    [Input('grid-button-0-0', 'n_clicks')]
+)
+def change_style(n):
+    # TODO: control via className and CSS
+    if n is None or n % 2 == 0:
+        return {'border-color': 'white', 'border-style': 'solid'}
+    else:
+        return {'border-color': 'red', 'border-style': 'solid'}
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
