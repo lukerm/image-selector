@@ -46,9 +46,9 @@ def create_image_grid(img_fname, n_row, n_col):
 
 
 # App's layout
-n_row, n_col = 7, 5
 app.layout = html.Div(
     children=[
+        html.Div(id='hidden-div', style={'display': 'none'}),
         html.H2("Happy Frogs"),
         html.Div([
             dcc.Dropdown(
@@ -99,27 +99,66 @@ def create_reactive_image_grid(img_fname, n_row, n_col):
     return create_image_grid(img_fname, n_row, n_col)
 
 
-@app.callback(
-    Output('grid-td-0-0', 'className'),
-    [Input('grid-button-0-0', 'n_clicks')]
-)
-def change_style(n):
-    if n is None or n % 2 == 0:
-        return 'focus-off'
-    else:
-        return 'focus-on'
+#@app.callback(
+#    Output('grid-td-0-0', 'className'),
+#    [Input('grid-button-0-0', 'n_clicks')]
+#)
+#def change_style(n):
+#    if n is None or n % 2 == 0:
+#        return 'focus-off'
+#    else:
+#        return 'focus-on'
 
 
+#@app.callback(
+#    Output('grid-td-0-0', 'style'),
+#    [Input('grid-button-0-0', 'n_clicks')]
+#)
+#def change_style(n):
+#    # TODO: control via className and CSS
+#    if n is None or n % 2 == 0:
+#        return {'border-color': 'white', 'border-style': 'solid'}
+#    else:
+#        return {'border-color': 'red', 'border-style': 'solid'}
+
+
+# attach responsive elements to grid
+# TODO: only works for 2x2 case
 @app.callback(
-    Output('grid-td-0-0', 'style'),
-    [Input('grid-button-0-0', 'n_clicks')]
+    Output('hidden-div', 'children'),
+    [Input('responsive-frogs', 'children')]
 )
-def change_style(n):
-    # TODO: control via className and CSS
-    if n is None or n % 2 == 0:
-        return {'border-color': 'white', 'border-style': 'solid'}
-    else:
-        return {'border-color': 'red', 'border-style': 'solid'}
+def update_grid_callbacks(grid):
+
+    grid_table = grid['props']['children'] # Retrieves table element's children
+    for i, row in enumerate(grid_table['props']['children']):
+        for j, col in enumerate(row['props']['children']):
+
+            # We can only set a callback on an element once, so we first check to if it has already been assigned
+            if f'grid-td-{i}-{j}.style' not in app.callback_map:
+                assert f'grid-td-{i}-{j}.className' not in app.callback_map
+
+                @app.callback(
+                    Output(f'grid-td-{i}-{j}', 'style'),
+                    [Input(f'grid-button-{i}-{j}', 'n_clicks')]
+                )
+                def change_style(n):
+                    if n is None or n % 2 == 0:
+                        return {'border-color': 'white', 'border-style': 'solid'}
+                    else:
+                        return {'border-color': 'red', 'border-style': 'solid'}
+
+                @app.callback(
+                    Output(f'grid-td-{i}-{j}', 'className'),
+                    [Input(f'grid-button-{i}-{j}', 'n_clicks')]
+                )
+                def change_class_name(n):
+                    if n is None or n % 2 == 0:
+                        return 'focus-off'
+                    else:
+                        return 'focus-on'
+
+    return None
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
