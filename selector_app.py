@@ -17,14 +17,21 @@ static_image_route = '/static/'
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
 
+# Globals for the images
+img_fname = 'happyFrog.jpg'
+img_path = static_image_route + img_fname
+img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
-def create_image_grid(img_fname, n_row, n_col):
+# List of image objects - pre-load here to avoid re-loading on every grid re-sizing
+IMAGE_LIST = [html.Img(src=img_path, style=img_style) for j in range(COLS_MAX) for i in range(ROWS_MAX)]
+
+
+def create_image_grid(n_row, n_col):
     """
-    Create a grid of the same image img with n_row rows and n_col columns
+    Create a grid of the same image with n_row rows and n_col columns
     """
-    img_path = static_image_route + img_fname
+
     pad = 2
-    img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
     def get_grid_element(x, y, hidden):
 
@@ -38,7 +45,7 @@ def create_image_grid(img_fname, n_row, n_col):
         return html.Td(id='grid-td-' + my_id,
                        className='focus-off',
                        children=html.Button(id='grid-button-' + my_id,
-                                            children=html.Img(src=img_path, style=img_style),
+                                            children=IMAGE_LIST[x + (x+1)*y],
                                             style=style,
                                             ),
                        style={'border-color': 'white'} # focus off at beginning
@@ -80,7 +87,7 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-frogs',
-                        children=create_image_grid('happyFrog.jpg', 2, 2),
+                        children=create_image_grid(2, 2),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
 #                    html.Td(
@@ -96,12 +103,11 @@ app.layout = html.Div(
 
 @app.callback(
     Output('responsive-frogs', 'children'),
-    [Input('choose-image', 'value'),
-     Input('choose-grid-size', 'value'),
+    [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value')]
 )
-def create_reactive_image_grid(img_fname, n_row, n_col):
-    return create_image_grid(img_fname, n_row, n_col)
+def create_reactive_image_grid(n_row, n_col):
+    return create_image_grid(n_row, n_col)
 
 
 # Create callbacks for all grid elements (hidden and visible)
