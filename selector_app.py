@@ -18,12 +18,14 @@ static_image_route = '/static/'
 ROWS_MAX, COLS_MAX = 7, 7
 
 # Globals for the images
-img_fname = 'happyFrog.jpg'
+img_fname = 'happyFrog.jpg' # Default image
 img_path = static_image_route + img_fname
 img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
 # List of image objects - pre-load here to avoid re-loading on every grid re-sizing
-IMAGE_LIST = [html.Img(src=img_path, style=img_style) for j in range(COLS_MAX) for i in range(ROWS_MAX)]
+images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
+IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
+IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
 
 
 def create_image_grid(n_row, n_col):
@@ -33,7 +35,7 @@ def create_image_grid(n_row, n_col):
 
     pad = 2
 
-    def get_grid_element(x, y, hidden):
+    def get_grid_element(x, y, n_x, n_y, hidden):
 
         # Set the display to none if this grid cell is hidden
         if hidden:
@@ -45,7 +47,7 @@ def create_image_grid(n_row, n_col):
         return html.Td(id='grid-td-' + my_id,
                        className='focus-off',
                        children=html.Button(id='grid-button-' + my_id,
-                                            children=IMAGE_LIST[x + (x+1)*y],
+                                            children=IMAGE_LIST[y + x*n_y],
                                             style=style,
                                             ),
                        style={'border-color': 'white'} # focus off at beginning
@@ -56,7 +58,7 @@ def create_image_grid(n_row, n_col):
         row = []
         for j in range(COLS_MAX):
             hidden = (i >= n_row) or (j >= n_col)
-            row.append(get_grid_element(i, j, hidden))
+            row.append(get_grid_element(i, j, n_row, n_col, hidden))
         row = html.Tr(row)
         grid.append(row)
 
@@ -68,20 +70,12 @@ app.layout = html.Div(
     children=[
         html.Div(id='hidden-div', style={'display': 'none'}),
         html.H2("Happy Frogs"),
-        html.Div([
-            dcc.Dropdown(
-                id='choose-image',
-                options=[{'label': 'happy frog original', 'value': 'happyFrog.jpg'},],
-                value='happyFrog.jpg',
-                style={'width': '12vw', 'display': 'inline-block'}
-            ),
-            dcc.Dropdown(
-                id='choose-grid-size',
-                options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
-                value=2,
-                style={'width': '5vw', 'display': 'inline-block'}
-            ),
-        ]),
+        dcc.Dropdown(
+            id='choose-grid-size',
+            options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
+            value=2,
+            style={'width': '5vw', 'display': 'inline-block'}
+        ),
         html.Div([
             html.Table([
                 html.Tr([
