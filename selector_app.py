@@ -50,7 +50,7 @@ def create_image_grid(n_row, n_col):
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
                                             ),
-                       style={'border-color': 'white'} # focus off at beginning
+                       style={'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'} # focus off at beginning
                        )
 
     grid = []
@@ -120,7 +120,7 @@ for i in range(ROWS_MAX):
             )
             def change_style(n):
                 if n is None or n % 2 == 0:
-                    return {'border-color': 'white', 'border-style': 'solid'}
+                    return {'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'}
                 else:
                     return {'border-color': 'red', 'border-style': 'solid'}
 
