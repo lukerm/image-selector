@@ -50,7 +50,6 @@ def create_image_grid(n_row, n_col):
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
                                             ),
-                       style={'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'} # focus off at beginning
                        )
 
     grid = []
@@ -113,16 +112,6 @@ for i in range(ROWS_MAX):
         # We can only set a callback on an element once, so we first check to if it has already been assigned
         if f'grid-td-{i}-{j}.style' not in app.callback_map:
             assert f'grid-td-{i}-{j}.className' not in app.callback_map
-
-            @app.callback(
-                Output(f'grid-td-{i}-{j}', 'style'),
-                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
-            )
-            def change_style(n):
-                if n is None or n % 2 == 0:
-                    return {'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'}
-                else:
-                    return {'border-color': 'red', 'border-style': 'solid'}
 
             @app.callback(
                 Output(f'grid-td-{i}-{j}', 'className'),
