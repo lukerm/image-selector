@@ -45,7 +45,7 @@ def create_image_grid(n_row, n_col):
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
-                       className='focus-off',
+                       className='focus-off' if x or y else 'focus-on',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
@@ -75,6 +75,7 @@ app.layout = html.Div(
             value=2,
             style={'width': '5vw', 'display': 'inline-block'}
         ),
+        html.Button(id='move-right', children='Move right'),
         html.Div([
             html.Table([
                 html.Tr([
@@ -103,6 +104,14 @@ def create_reactive_image_grid(n_row, n_col):
     return create_image_grid(n_row, n_col)
 
 
+@app.callback(
+    [Output('grid-td-0-0', 'className'), Output('grid-td-0-1', 'className')],
+    [Input('move-right', 'n_clicks')],
+)
+def toggle_right(n):
+    return ('focus-off', 'focus-on')
+
+
 # Create callbacks for all grid elements (hidden and visible)
 # As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
 grid_table = app.layout.get('responsive-frogs').children.children
@@ -113,15 +122,18 @@ for i in range(ROWS_MAX):
         if f'grid-td-{i}-{j}.style' not in app.callback_map:
             assert f'grid-td-{i}-{j}.className' not in app.callback_map
 
-            @app.callback(
-                Output(f'grid-td-{i}-{j}', 'className'),
-                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
-            )
-            def change_class_name(n):
-                if n is None or n % 2 == 0:
-                    return 'focus-off'
-                else:
-                    return 'focus-on'
+#            @app.callback(
+#                Output(f'grid-td-{i}-{j}', 'className'),
+#                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
+#            )
+#            def change_class_name(n):
+#                if n is None or n % 2 == 0:
+#                    return 'focus-off'
+#                else:
+#                    return 'focus-on'
+
+
+
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
