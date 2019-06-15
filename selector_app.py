@@ -3,7 +3,7 @@ import os
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 import flask
 
@@ -104,24 +104,16 @@ def create_reactive_image_grid(n_row, n_col):
     return create_image_grid(n_row, n_col)
 
 
-@app.callback(
-    [Output('grid-td-0-0', 'className'), Output('grid-td-0-1', 'className')],
-    [Input('move-right', 'n_clicks')],
-)
-def toggle_right(n):
-    return ('focus-off', 'focus-on')
-
-
-# Create callbacks for all grid elements (hidden and visible)
-# As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
-grid_table = app.layout.get('responsive-frogs').children.children
-for i in range(ROWS_MAX):
-    for j in range(COLS_MAX):
-
-        # We can only set a callback on an element once, so we first check to if it has already been assigned
-        if f'grid-td-{i}-{j}.style' not in app.callback_map:
-            assert f'grid-td-{i}-{j}.className' not in app.callback_map
-
+## Create callbacks for all grid elements (hidden and visible)
+## As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
+#grid_table = app.layout.get('responsive-frogs').children.children
+#for i in range(ROWS_MAX):
+#    for j in range(COLS_MAX):
+#
+#        # We can only set a callback on an element once, so we first check to if it has already been assigned
+#        if f'grid-td-{i}-{j}.style' not in app.callback_map:
+#            #assert f'grid-td-{i}-{j}.className' not in app.callback_map
+#
 #            @app.callback(
 #                Output(f'grid-td-{i}-{j}', 'className'),
 #                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
@@ -133,7 +125,24 @@ for i in range(ROWS_MAX):
 #                    return 'focus-on'
 
 
+grid_table = app.layout.get('responsive-frogs').children.children
+for i in range(ROWS_MAX):
+    for j in range(COLS_MAX):
 
+        # We can only set a callback on an element once, so we first check to if it has already been assigned
+        if f'grid-td-{i}-{j}.style' not in app.callback_map:
+            assert f'grid-td-{i}-{j}.className' not in app.callback_map
+
+            @app.callback(
+                Output(f'grid-td-{i}-{j}', 'className'),
+                [Input('move-right', 'n_clicks')],
+                [State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className')]
+            )
+            def move_right(n, class_left):
+                if class_left == 'focus-on':
+                    return 'focus-on'
+                else:
+                    return 'focus-off'
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
