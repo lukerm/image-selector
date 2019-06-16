@@ -106,25 +106,6 @@ def create_reactive_image_grid(n_row, n_col):
 
 ## Create callbacks for all grid elements (hidden and visible)
 ## As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
-#grid_table = app.layout.get('responsive-frogs').children.children
-#for i in range(ROWS_MAX):
-#    for j in range(COLS_MAX):
-#
-#        # We can only set a callback on an element once, so we first check to if it has already been assigned
-#        if f'grid-td-{i}-{j}.style' not in app.callback_map:
-#            #assert f'grid-td-{i}-{j}.className' not in app.callback_map
-#
-#            @app.callback(
-#                Output(f'grid-td-{i}-{j}', 'className'),
-#                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
-#            )
-#            def change_class_name(n):
-#                if n is None or n % 2 == 0:
-#                    return 'focus-off'
-#                else:
-#                    return 'focus-on'
-
-
 grid_table = app.layout.get('responsive-frogs').children.children
 for i in range(ROWS_MAX):
     for j in range(COLS_MAX):
@@ -135,14 +116,41 @@ for i in range(ROWS_MAX):
 
             @app.callback(
                 Output(f'grid-td-{i}-{j}', 'className'),
-                [Input('move-right', 'n_clicks')],
-                [State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className')]
+                [
+                    Input(f'grid-button-{i}-{j}', 'n_clicks'),
+                    Input('move-right', 'n_clicks'),
+                ],
+                [
+                    State(f'grid-td-{i}-{j}', 'className'), # my former state
+                    State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
+                ]
             )
-            def move_right(n, class_left):
-                if class_left == 'focus-on':
+            def activate_this_cell(n_self, n_right, class_self, class_left):
+
+                # Find the button that triggered this callback (if any)
+                context = dash.callback_context
+                if not context.triggered and i+j > 0:
+                    return 'focus-off'
+                elif not context.triggered and i+j == 0:
                     return 'focus-on'
                 else:
-                    return 'focus-off'
+                    button_id = context.triggered[0]['prop_id'].split('.')[0]
+
+                # Switch based on the button type
+
+                # If my own button was pressed, toggle state
+                if 'grid-button-' in button_id:
+                    if class_self == 'focus-on':
+                        return 'focus-off'
+                    else:
+                        return 'focus-on'
+
+                # If the right button was pressed, toggle based on left neighbour's state
+                if button_id == 'move-right':
+                    if class_left == 'focus-on':
+                        return 'focus-on'
+                    else:
+                        return 'focus-off'
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
