@@ -75,7 +75,10 @@ app.layout = html.Div(
             value=2,
             style={'width': '5vw', 'display': 'inline-block'}
         ),
-        html.Button(id='move-right', children='Move right'),
+        html.Div([
+            html.Button(id='move-left', children='Move left'),
+            html.Button(id='move-right', children='Move right'),
+        ]),
         html.Div([
             html.Table([
                 html.Tr([
@@ -118,14 +121,16 @@ for i in range(ROWS_MAX):
                 Output(f'grid-td-{i}-{j}', 'className'),
                 [
                     Input(f'grid-button-{i}-{j}', 'n_clicks'),
+                    Input('move-left', 'n_clicks'),
                     Input('move-right', 'n_clicks'),
                 ],
                 [
                     State(f'grid-td-{i}-{j}', 'className'), # my former state
+                    State(f'grid-td-{i}-{(j+1) % COLS_MAX}', 'className'), # my right neighbour's state
                     State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
                 ]
             )
-            def activate_this_cell(n_self, n_right, class_self, class_left):
+            def activate_this_cell(n_self, n_left, n_right, class_self, class_right, class_left):
 
                 # Find the button that triggered this callback (if any)
                 context = dash.callback_context
@@ -144,6 +149,13 @@ for i in range(ROWS_MAX):
                         return 'focus-off'
                     else:
                         return 'focus-on'
+
+                # If the left button was pressed, toggle based on right neighbour's state
+                if button_id == 'move-left':
+                    if class_right == 'focus-on':
+                        return 'focus-on'
+                    else:
+                        return 'focus-off'
 
                 # If the right button was pressed, toggle based on left neighbour's state
                 if button_id == 'move-right':
