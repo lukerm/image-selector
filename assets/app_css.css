@@ -1,0 +1,14 @@
+.hidden {display:none;}
+.border {border:solid 1px #111111;}
+.focus {border:solid 2px blue}
+.focus-on {
+    border-style:solid;
+    border-width: 3px;
+    border-color: red;
+}
+.focus-off {
+    border-style:solid;
+    border-width: 3px;
+    border-color: white;
+}
+

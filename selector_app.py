@@ -3,7 +3,7 @@ import os
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 import flask
 
@@ -45,12 +45,11 @@ def create_image_grid(n_row, n_col):
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
-                       className='focus-off',
+                       className='focus-off' if x or y else 'focus-on',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
                                             ),
-                       style={'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'} # focus off at beginning
                        )
 
     grid = []
@@ -76,6 +75,12 @@ app.layout = html.Div(
             value=2,
             style={'width': '5vw', 'display': 'inline-block'}
         ),
+        html.Div([
+            html.Button(id='move-left', children='Move left'),
+            html.Button(id='move-right', children='Move right'),
+            html.Button(id='move-up', children='Move up'),
+            html.Button(id='move-down', children='Move down'),
+        ]),
         html.Div([
             html.Table([
                 html.Tr([
@@ -104,8 +109,8 @@ def create_reactive_image_grid(n_row, n_col):
     return create_image_grid(n_row, n_col)
 
 
-# Create callbacks for all grid elements (hidden and visible)
-# As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
+## Create callbacks for all grid elements (hidden and visible)
+## As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
 grid_table = app.layout.get('responsive-frogs').children.children
 for i in range(ROWS_MAX):
     for j in range(COLS_MAX):
@@ -115,24 +120,58 @@ for i in range(ROWS_MAX):
             assert f'grid-td-{i}-{j}.className' not in app.callback_map
 
             @app.callback(
-                Output(f'grid-td-{i}-{j}', 'style'),
-                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
-            )
-            def change_style(n):
-                if n is None or n % 2 == 0:
-                    return {'border-color': 'white', 'border-style': 'solid', 'border-width': '0px'}
-                else:
-                    return {'border-color': 'red', 'border-style': 'solid'}
-
-            @app.callback(
                 Output(f'grid-td-{i}-{j}', 'className'),
-                [Input(f'grid-button-{i}-{j}', 'n_clicks')]
+                [
+                    Input(f'grid-button-{i}-{j}', 'n_clicks'),
+                    Input('move-left', 'n_clicks'),
+                    Input('move-right', 'n_clicks'),
+                    Input('move-up', 'n_clicks'),
+                    Input('move-down', 'n_clicks'),
+                ],
+                [
+                    State(f'grid-td-{i}-{j}', 'className'), # my former state
+                    State(f'grid-td-{i}-{(j+1) % COLS_MAX}', 'className'), # my right neighbour's state
+                    State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
+                    State(f'grid-td-{(i+1) % ROWS_MAX}-{j}', 'className'), # my below neighbour's state
+                    State(f'grid-td-{(i-1) % ROWS_MAX}-{j}', 'className'), # my above neighbour's state
+                ]
             )
-            def change_class_name(n):
-                if n is None or n % 2 == 0:
+            def activate_this_cell(n_self, n_left, n_right, n_up, n_down,
+                                   class_self, class_right, class_left, class_below, class_above):
+
+                # Find the button that triggered this callback (if any)
+                context = dash.callback_context
+                if not context.triggered and i+j > 0:
                     return 'focus-off'
-                else:
+                elif not context.triggered and i+j == 0:
                     return 'focus-on'
+                else:
+                    button_id = context.triggered[0]['prop_id'].split('.')[0]
+
+                # Switch based on the button type
+
+                # If my own button was pressed, toggle state
+                if 'grid-button-' in button_id:
+                    if class_self == 'focus-on':
+                        return 'focus-off'
+                    else:
+                        return 'focus-on'
+
+                # For movement in a particular direction, check the class of
+                # the neighbour in the opposite direction
+                if button_id == 'move-left':
+                    check_class = class_right
+                elif button_id == 'move-right':
+                    check_class = class_left
+                elif button_id == 'move-up':
+                    check_class = class_below
+                elif button_id == 'move-down':
+                    check_class = class_above
+
+                if check_class == 'focus-on':
+                    return 'focus-on'
+                else:
+                    return 'focus-off'
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
