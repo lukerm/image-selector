@@ -157,33 +157,21 @@ for i in range(ROWS_MAX):
                     else:
                         return 'focus-on'
 
-                # If the left button was pressed, toggle based on right neighbour's state
+                # For movement in a particular direction, check the class of
+                # the neighbour in the opposite direction
                 if button_id == 'move-left':
-                    if class_right == 'focus-on':
-                        return 'focus-on'
-                    else:
-                        return 'focus-off'
+                    check_class = class_right
+                elif button_id == 'move-right':
+                    check_class = class_left
+                elif button_id == 'move-up':
+                    check_class = class_below
+                elif button_id == 'move-down':
+                    check_class = class_above
 
-                # If the right button was pressed, toggle based on left neighbour's state
-                if button_id == 'move-right':
-                    if class_left == 'focus-on':
-                        return 'focus-on'
-                    else:
-                        return 'focus-off'
-
-                # If the up button was pressed, toggle based on below neighbour's state
-                if button_id == 'move-up':
-                    if class_below == 'focus-on':
-                        return 'focus-on'
-                    else:
-                        return 'focus-off'
-
-                # If the down button was pressed, toggle based on above neighbour's state
-                if button_id == 'move-down':
-                    if class_above == 'focus-on':
-                        return 'focus-on'
-                    else:
-                        return 'focus-off'
+                if check_class == 'focus-on':
+                    return 'focus-on'
+                else:
+                    return 'focus-off'
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
