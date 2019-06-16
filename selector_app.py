@@ -78,6 +78,7 @@ app.layout = html.Div(
         html.Div([
             html.Button(id='move-left', children='Move left'),
             html.Button(id='move-right', children='Move right'),
+            html.Button(id='move-up', children='Move up'),
         ]),
         html.Div([
             html.Table([
@@ -123,14 +124,17 @@ for i in range(ROWS_MAX):
                     Input(f'grid-button-{i}-{j}', 'n_clicks'),
                     Input('move-left', 'n_clicks'),
                     Input('move-right', 'n_clicks'),
+                    Input('move-up', 'n_clicks'),
                 ],
                 [
                     State(f'grid-td-{i}-{j}', 'className'), # my former state
                     State(f'grid-td-{i}-{(j+1) % COLS_MAX}', 'className'), # my right neighbour's state
                     State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
+                    State(f'grid-td-{(i+1) % ROWS_MAX}-{j}', 'className'), # my below neighbour's state
                 ]
             )
-            def activate_this_cell(n_self, n_left, n_right, class_self, class_right, class_left):
+            def activate_this_cell(n_self, n_left, n_right, n_up,
+                                   class_self, class_right, class_left, class_below):
 
                 # Find the button that triggered this callback (if any)
                 context = dash.callback_context
@@ -160,6 +164,13 @@ for i in range(ROWS_MAX):
                 # If the right button was pressed, toggle based on left neighbour's state
                 if button_id == 'move-right':
                     if class_left == 'focus-on':
+                        return 'focus-on'
+                    else:
+                        return 'focus-off'
+
+                # If the up button was pressed, toggle based on below neighbour's state
+                if button_id == 'move-up':
+                    if class_below == 'focus-on':
                         return 'focus-on'
                     else:
                         return 'focus-off'
