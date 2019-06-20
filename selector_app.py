@@ -135,6 +135,7 @@ for i in range(ROWS_MAX):
                     State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
                     State(f'grid-td-{(i+1) % ROWS_MAX}-{j}', 'className'), # my below neighbour's state
                     State(f'grid-td-{(i-1) % ROWS_MAX}-{j}', 'className'), # my above neighbour's state
+                    # TODO: If we supplied the state of ALL grid squares, we could avoid moving to hidden cells
                 ]
             )
             def activate_this_cell(n_self, n_left, n_right, n_up, n_down,
