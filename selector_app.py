@@ -50,6 +50,7 @@ def create_image_grid(n_row, n_col):
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
                                             ),
+                        style=style,
                        )
 
     grid = []
