@@ -1,4 +1,5 @@
 import os
+import re
 
 import dash
 import dash_core_components as dcc
@@ -16,6 +17,7 @@ static_image_route = '/static/'
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
+N_GRID = ROWS_MAX * COLS_MAX
 
 # Globals for the images
 img_fname = 'happyFrog.jpg' # Default image
@@ -26,6 +28,11 @@ img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
 IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
 IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
+
+# These define the inputs and outputs to callback function activate_deactivate_cells
+ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
 
 def create_image_grid(n_row, n_col):
@@ -110,70 +117,78 @@ def create_reactive_image_grid(n_row, n_col):
     return create_image_grid(n_row, n_col)
 
 
-## Create callbacks for all grid elements (hidden and visible)
-## As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
-grid_table = app.layout.get('responsive-frogs').children.children
-for i in range(ROWS_MAX):
-    for j in range(COLS_MAX):
+@app.callback(
+    ALL_TD_ID_OUTPUTS,
+    [
+         Input('move-left', 'n_clicks'),
+         Input('move-right', 'n_clicks'),
+         Input('move-up', 'n_clicks'),
+         Input('move-down', 'n_clicks'),
+    ] + ALL_BUTTONS_IDS,
+    ALL_TD_ID_STATES
+)
+def activate_deactivate_cells(n_left, n_right, n_up, n_down, *args):
+    """
+    Global callback function for toggling classes. There are two toggle modes:
+        1) Pressing a grid cell will toggle its state
+        2) Pressing a directional button will force the focus to shift in the direction stated
 
-        # We can only set a callback on an element once, so we first check to if it has already been assigned
-        if f'grid-td-{i}-{j}.style' not in app.callback_map:
-            assert f'grid-td-{i}-{j}.className' not in app.callback_map
+    Returns: a list of new classNames for all the grid cells.
 
-            @app.callback(
-                Output(f'grid-td-{i}-{j}', 'className'),
-                [
-                    Input(f'grid-button-{i}-{j}', 'n_clicks'),
-                    Input('move-left', 'n_clicks'),
-                    Input('move-right', 'n_clicks'),
-                    Input('move-up', 'n_clicks'),
-                    Input('move-down', 'n_clicks'),
-                ],
-                [
-                    State(f'grid-td-{i}-{j}', 'className'), # my former state
-                    State(f'grid-td-{i}-{(j+1) % COLS_MAX}', 'className'), # my right neighbour's state
-                    State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
-                    State(f'grid-td-{(i+1) % ROWS_MAX}-{j}', 'className'), # my below neighbour's state
-                    State(f'grid-td-{(i-1) % ROWS_MAX}-{j}', 'className'), # my above neighbour's state
-                    # TODO: If we supplied the state of ALL grid squares, we could avoid moving to hidden cells
-                ]
-            )
-            def activate_this_cell(n_self, n_left, n_right, n_up, n_down,
-                                   class_self, class_right, class_left, class_below, class_above):
+    Note: args split into two halves:
+        args[:N_GRID] are Inputs (Buttons)
+        args[N_GRID:] are States (Tds)
+    """
 
-                # Find the button that triggered this callback (if any)
-                context = dash.callback_context
-                if not context.triggered and i+j > 0:
-                    return 'focus-off'
-                elif not context.triggered and i+j == 0:
-                    return 'focus-on'
+    # Find the button that triggered this callback (if any)
+    context = dash.callback_context
+    if not context.triggered:
+        return ['focus-on' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+    else:
+        button_id = context.triggered[0]['prop_id'].split('.')[0]
+
+    # Easy case: toggle the state of this button (as it was pressed)
+    if 'grid-button-' in button_id:
+        # Grid location of the pressed button
+        cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
+        # Class name of the pressed button
+        previous_class = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
+
+        new_classes = []
+        for i in range(ROWS_MAX):
+            for j in range(COLS_MAX):
+                # Toggle the pressed button
+                if cell_loc == [i, j]:
+                    new_classes.append('focus-off' if previous_class == 'focus-on' else 'focus-on')
+                # All others retain their class name
                 else:
-                    button_id = context.triggered[0]['prop_id'].split('.')[0]
+                    new_classes.append(args[N_GRID + j + i*COLS_MAX])
 
-                # Switch based on the button type
+    # Harder case: move all in a particular direction
+    elif 'move-' in button_id:
 
-                # If my own button was pressed, toggle state
-                if 'grid-button-' in button_id:
-                    if class_self == 'focus-on':
-                        return 'focus-off'
-                    else:
-                        return 'focus-on'
-
-                # For movement in a particular direction, check the class of
-                # the neighbour in the opposite direction
+        new_classes = []
+        for i in range(ROWS_MAX):
+            for j in range(COLS_MAX):
                 if button_id == 'move-left':
-                    check_class = class_right
+                    right_ngbr_i, right_ngbr_j = i, (j+1) % COLS_MAX
+                    check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
                 elif button_id == 'move-right':
-                    check_class = class_left
+                    left_ngbr_i, left_ngbr_j = i, (j-1) % COLS_MAX
+                    check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
                 elif button_id == 'move-up':
-                    check_class = class_below
+                    above_ngbr_i, above_ngbr_j = (i+1) % ROWS_MAX, j
+                    check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
                 elif button_id == 'move-down':
-                    check_class = class_above
+                    below_ngbr_i, below_ngbr_j = (i-1) % ROWS_MAX, j
+                    check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
 
-                if check_class == 'focus-on':
-                    return 'focus-on'
-                else:
-                    return 'focus-off'
+                new_classes.append(check_class)
+
+    else:
+        raise ValueError('Unrecognized button ID')
+
+    return new_classes
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
