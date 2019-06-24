@@ -120,6 +120,8 @@ def create_reactive_image_grid(n_row, n_col):
 @app.callback(
     ALL_TD_ID_OUTPUTS,
     [
+         Input('choose-grid-size', 'value'),
+         Input('choose-grid-size', 'value'),
          Input('move-left', 'n_clicks'),
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
@@ -127,11 +129,25 @@ def create_reactive_image_grid(n_row, n_col):
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_left, n_right, n_up, n_down, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *args):
     """
-    Global callback function for toggling classes. There are two toggle modes:
+    Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
         2) Pressing a directional button will force the focus to shift in the direction stated
+        3) Resizing the grid will cause the top-left only to be in focus
+
+    Args:
+        n_rows = int, current number of rows in the grid (indicates resizing)
+        n_cols = int, current number of columns in the grid (indicates resizing)
+        n_left = int, number of clicks on the 'move-left' buttons (indicates shifting)
+        n_right = int, number of clicks on the 'move-right' buttons (indicates shifting)
+        n_up = int, number of clicks on the 'move-up' buttons (indicates shifting)
+        n_down = int, number of clicks on the 'move-down' buttons (indicates shifting)
+
+        *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
+            0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
+            1) args[N_GRID:] are States (indicating state of the grid-Tds)
+            Both are in row-major order (for i in rows: for j in cols: ... )
 
     Returns: a list of new classNames for all the grid cells.
 
@@ -171,19 +187,23 @@ def activate_deactivate_cells(n_left, n_right, n_up, n_down, *args):
         for i in range(ROWS_MAX):
             for j in range(COLS_MAX):
                 if button_id == 'move-left':
-                    right_ngbr_i, right_ngbr_j = i, (j+1) % COLS_MAX
+                    right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
                     check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
                 elif button_id == 'move-right':
-                    left_ngbr_i, left_ngbr_j = i, (j-1) % COLS_MAX
+                    left_ngbr_i, left_ngbr_j = i, (j-1) % n_cols
                     check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
                 elif button_id == 'move-up':
-                    above_ngbr_i, above_ngbr_j = (i+1) % ROWS_MAX, j
+                    above_ngbr_i, above_ngbr_j = (i+1) % n_rows, j
                     check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
                 elif button_id == 'move-down':
-                    below_ngbr_i, below_ngbr_j = (i-1) % ROWS_MAX, j
+                    below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
                     check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
 
                 new_classes.append(check_class)
+
+    # Reset the grid
+    elif button_id == 'choose-grid-size':
+        return ['focus-on' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
     else:
         raise ValueError('Unrecognized button ID')
