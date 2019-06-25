@@ -197,6 +197,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         new_classes = []
         for i in range(ROWS_MAX):
             for j in range(COLS_MAX):
+                my_class = args[N_GRID + j + i*COLS_MAX]
                 if button_id == 'move-left':
                     right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
                     check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
@@ -210,7 +211,10 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                     below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
                     check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
 
-                new_classes.append(check_class)
+                if my_class == 'focus-last-clicked':
+                    new_classes.append('focus-off')
+                else:
+                    new_classes.append(check_class if check_class == 'focus-last-clicked' else my_class)
 
     # Reset the grid
     elif button_id == 'choose-grid-size':
