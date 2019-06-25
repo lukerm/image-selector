@@ -52,7 +52,7 @@ def create_image_grid(n_row, n_col):
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
-                       className='focus-off' if x or y else 'focus-last-clicked',
+                       className='focus-off' if x or y else 'focus-off focus-last-clicked',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
@@ -159,7 +159,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        return ['focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -176,16 +176,16 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                 # Toggle the pressed button
                 if cell_loc == [i, j]:
                     # Turn any kind of focus off
-                    if previous_class_clicked == 'focus-on' or previous_class_clicked == 'focus-last-clicked':
+                    if 'focus-on' in previous_class_clicked or 'focus-last-clicked' in previous_class_clicked:
                         new_class_clicked = 'focus-off'
                     else:
-                        new_class_clicked = 'focus-last-clicked'
+                        new_class_clicked = 'focus-on focus-last-clicked'
                     new_classes.append(new_class_clicked)
                 # All others retain their class name, except the previous last clicked moves to focus on
                 else:
                     previous_class = args[N_GRID + j + i*COLS_MAX]
                     # Only demote the previous last clicked to focus-on if we are turning another cell on (not off!)
-                    if previous_class == 'focus-last-clicked' and previous_class_clicked == 'focus-off':
+                    if 'focus-last-clicked' in previous_class and 'focus-off' in previous_class_clicked:
                         new_class = 'focus-on'
                     else:
                         new_class = previous_class
@@ -211,14 +211,14 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                     below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
                     check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
 
-                if my_class == 'focus-last-clicked':
-                    new_classes.append('focus-off')
+                if 'focus-last-clicked' in my_class:
+                    new_classes.append(my_class.split(' ')[0])
                 else:
-                    new_classes.append(check_class if check_class == 'focus-last-clicked' else my_class)
+                    new_classes.append(my_class + ' focus-last-clicked' if 'focus-last-clicked' in check_class  else my_class)
 
     # Reset the grid
     elif button_id == 'choose-grid-size':
-        return ['focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
     else:
         raise ValueError('Unrecognized button ID')
