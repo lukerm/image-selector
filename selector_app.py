@@ -1,3 +1,21 @@
+"""
+Dash app for grouping images and choosing the best per-group images.
+
+The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
+clicking on it, or by using the directional buttons / keys to move the blue square around.
+
+Each grid cell (td element) will have at least one class name in {'focus-off', 'focus-on'}. You can have multiple cells
+with focus-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
+the 'focus-off' will (often) have no border, with one exception. A cell can have 'focus-on' or 'focus-off' but not both.
+
+Additionally, one cell can have the special 'focus-last-clicked' class (currently blue border). This applies to one cell -
+another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
+have it) or by moving the current highlighted cell around with the directional buttons / keys.
+
+Note: the way this is coded means that the class ordering is always as follows: 'focus-o[n|ff][ focus-last-clicked]'.
+        This is not ideal and maybe fixed in the future so that the order does not matter.
+"""
+
 import os
 import re
 
