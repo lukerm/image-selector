@@ -133,8 +133,8 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
-        2) Pressing a directional button will force the focus to shift in the direction stated
-        3) Resizing the grid will cause the top-left only to be in focus
+        2) Pressing a directional button will force the "last-clicked" focus (only) to shift in the direction stated
+        3) Resizing the grid will cause the top-left only to be in last-click focus
 
     Args:
         n_rows = int, current number of rows in the grid (indicates resizing)
@@ -173,9 +173,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         new_classes = []
         for i in range(ROWS_MAX):
             for j in range(COLS_MAX):
-                # Toggle the pressed button
+                # Toggle the class of the pressed button
                 if cell_loc == [i, j]:
-                    # Toggle the background focus, but keep the last
+                    # Toggle the focus according to these rules
                     if previous_class_clicked == 'focus-off':
                         new_class_clicked = 'focus-on focus-last-clicked'
                     elif previous_class_clicked == 'focus-off focus-last-clicked':
