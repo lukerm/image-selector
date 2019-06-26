@@ -1,4 +1,23 @@
+"""
+Dash app for grouping images and choosing the best per-group images.
+
+The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
+clicking on it, or by using the directional buttons / keys to move the blue square around.
+
+Each grid cell (td element) will have at least one class name in {'focus-off', 'focus-on'}. You can have multiple cells
+with focus-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
+the 'focus-off' will (often) have no border, with one exception. A cell can have 'focus-on' or 'focus-off' but not both.
+
+Additionally, one cell can have the special 'focus-last-clicked' class (currently blue border). This applies to one cell -
+another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
+have it) or by moving the current highlighted cell around with the directional buttons / keys.
+
+Note: the way this is coded means that the class ordering is always as follows: 'focus-o[n|ff][ focus-last-clicked]'.
+        This is not ideal and maybe fixed in the future so that the order does not matter.
+"""
+
 import os
+import re
 
 import dash
 import dash_core_components as dcc
@@ -16,6 +35,7 @@ static_image_route = '/static/'
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
+N_GRID = ROWS_MAX * COLS_MAX
 
 # Globals for the images
 img_fname = 'happyFrog.jpg' # Default image
@@ -26,6 +46,11 @@ img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
 IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
 IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
+
+# These define the inputs and outputs to callback function activate_deactivate_cells
+ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
 
 def create_image_grid(n_row, n_col):
@@ -45,7 +70,7 @@ def create_image_grid(n_row, n_col):
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
-                       className='focus-off' if x or y else 'focus-on',
+                       className='focus-off' if x or y else 'focus-off focus-last-clicked',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
@@ -110,70 +135,117 @@ def create_reactive_image_grid(n_row, n_col):
     return create_image_grid(n_row, n_col)
 
 
-## Create callbacks for all grid elements (hidden and visible)
-## As they are all defined in advance, all grid ids exist from the beginning (i.e. in the static app.layout)
-grid_table = app.layout.get('responsive-frogs').children.children
-for i in range(ROWS_MAX):
-    for j in range(COLS_MAX):
+@app.callback(
+    ALL_TD_ID_OUTPUTS,
+    [
+         Input('choose-grid-size', 'value'),
+         Input('choose-grid-size', 'value'),
+         Input('move-left', 'n_clicks'),
+         Input('move-right', 'n_clicks'),
+         Input('move-up', 'n_clicks'),
+         Input('move-down', 'n_clicks'),
+    ] + ALL_BUTTONS_IDS,
+    ALL_TD_ID_STATES
+)
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *args):
+    """
+    Global callback function for toggling classes. There are three toggle modes:
+        1) Pressing a grid cell will toggle its state
+        2) Pressing a directional button will force the "last-clicked" focus (only) to shift in the direction stated
+        3) Resizing the grid will cause the top-left only to be in last-click focus
 
-        # We can only set a callback on an element once, so we first check to if it has already been assigned
-        if f'grid-td-{i}-{j}.style' not in app.callback_map:
-            assert f'grid-td-{i}-{j}.className' not in app.callback_map
+    Args:
+        n_rows = int, current number of rows in the grid (indicates resizing)
+        n_cols = int, current number of columns in the grid (indicates resizing)
+        n_left = int, number of clicks on the 'move-left' buttons (indicates shifting)
+        n_right = int, number of clicks on the 'move-right' buttons (indicates shifting)
+        n_up = int, number of clicks on the 'move-up' buttons (indicates shifting)
+        n_down = int, number of clicks on the 'move-down' buttons (indicates shifting)
 
-            @app.callback(
-                Output(f'grid-td-{i}-{j}', 'className'),
-                [
-                    Input(f'grid-button-{i}-{j}', 'n_clicks'),
-                    Input('move-left', 'n_clicks'),
-                    Input('move-right', 'n_clicks'),
-                    Input('move-up', 'n_clicks'),
-                    Input('move-down', 'n_clicks'),
-                ],
-                [
-                    State(f'grid-td-{i}-{j}', 'className'), # my former state
-                    State(f'grid-td-{i}-{(j+1) % COLS_MAX}', 'className'), # my right neighbour's state
-                    State(f'grid-td-{i}-{(j-1) % COLS_MAX}', 'className'), # my left neighbour's state
-                    State(f'grid-td-{(i+1) % ROWS_MAX}-{j}', 'className'), # my below neighbour's state
-                    State(f'grid-td-{(i-1) % ROWS_MAX}-{j}', 'className'), # my above neighbour's state
-                    # TODO: If we supplied the state of ALL grid squares, we could avoid moving to hidden cells
-                ]
-            )
-            def activate_this_cell(n_self, n_left, n_right, n_up, n_down,
-                                   class_self, class_right, class_left, class_below, class_above):
+        *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
+            0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
+            1) args[N_GRID:] are States (indicating state of the grid-Tds)
+            Both are in row-major order (for i in rows: for j in cols: ... )
 
-                # Find the button that triggered this callback (if any)
-                context = dash.callback_context
-                if not context.triggered and i+j > 0:
-                    return 'focus-off'
-                elif not context.triggered and i+j == 0:
-                    return 'focus-on'
-                else:
-                    button_id = context.triggered[0]['prop_id'].split('.')[0]
+    Returns: a list of new classNames for all the grid cells.
 
-                # Switch based on the button type
+    Note: args split into two halves:
+        args[:N_GRID] are Inputs (Buttons)
+        args[N_GRID:] are States (Tds)
+    """
 
-                # If my own button was pressed, toggle state
-                if 'grid-button-' in button_id:
-                    if class_self == 'focus-on':
-                        return 'focus-off'
+    # Find the button that triggered this callback (if any)
+    context = dash.callback_context
+    if not context.triggered:
+        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+    else:
+        button_id = context.triggered[0]['prop_id'].split('.')[0]
+
+    # Easy case: toggle the state of this button (as it was pressed)
+    if 'grid-button-' in button_id:
+        # Grid location of the pressed button
+        cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
+        # Class name of the pressed button
+        previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
+
+        new_classes = []
+        for i in range(ROWS_MAX):
+            for j in range(COLS_MAX):
+                # Toggle the class of the pressed button
+                if cell_loc == [i, j]:
+                    # Toggle the focus according to these rules
+                    if previous_class_clicked == 'focus-off':
+                        new_class_clicked = 'focus-on focus-last-clicked'
+                    elif previous_class_clicked == 'focus-off focus-last-clicked':
+                        new_class_clicked = 'focus-on focus-last-clicked'
+                    elif previous_class_clicked == 'focus-on':
+                        new_class_clicked = 'focus-on focus-last-clicked'
                     else:
-                        return 'focus-on'
-
-                # For movement in a particular direction, check the class of
-                # the neighbour in the opposite direction
-                if button_id == 'move-left':
-                    check_class = class_right
-                elif button_id == 'move-right':
-                    check_class = class_left
-                elif button_id == 'move-up':
-                    check_class = class_below
-                elif button_id == 'move-down':
-                    check_class = class_above
-
-                if check_class == 'focus-on':
-                    return 'focus-on'
+                        new_class_clicked = 'focus-off'
+                    new_classes.append(new_class_clicked)
+                # All others retain their class name, except the previous last clicked moves to focus on
                 else:
-                    return 'focus-off'
+                    previous_class = args[N_GRID + j + i*COLS_MAX]
+                    # Only demote the previous last clicked to focus-on if we are turning another cell on (not off!)
+                    if 'focus-last-clicked' in previous_class and 'focus-off' in previous_class_clicked:
+                        new_class = 'focus-on'
+                    else:
+                        new_class = previous_class
+                    new_classes.append(new_class)
+
+    # Harder case: move all in a particular direction
+    elif 'move-' in button_id:
+
+        new_classes = []
+        for i in range(ROWS_MAX):
+            for j in range(COLS_MAX):
+                my_class = args[N_GRID + j + i*COLS_MAX]
+                if button_id == 'move-left':
+                    right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
+                    check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
+                elif button_id == 'move-right':
+                    left_ngbr_i, left_ngbr_j = i, (j-1) % n_cols
+                    check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
+                elif button_id == 'move-up':
+                    above_ngbr_i, above_ngbr_j = (i+1) % n_rows, j
+                    check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
+                elif button_id == 'move-down':
+                    below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
+                    check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
+
+                if 'focus-last-clicked' in my_class:
+                    new_classes.append(my_class.split(' ')[0])
+                else:
+                    new_classes.append(my_class + ' focus-last-clicked' if 'focus-last-clicked' in check_class  else my_class)
+
+    # Reset the grid
+    elif button_id == 'choose-grid-size':
+        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+
+    else:
+        raise ValueError('Unrecognized button ID')
+
+    return new_classes
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
