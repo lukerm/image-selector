@@ -175,11 +175,15 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
             for j in range(COLS_MAX):
                 # Toggle the pressed button
                 if cell_loc == [i, j]:
-                    # Turn any kind of focus off
-                    if 'focus-on' in previous_class_clicked or 'focus-last-clicked' in previous_class_clicked:
-                        new_class_clicked = 'focus-off'
-                    else:
+                    # Toggle the background focus, but keep the last
+                    if previous_class_clicked == 'focus-off':
                         new_class_clicked = 'focus-on focus-last-clicked'
+                    elif previous_class_clicked == 'focus-off focus-last-clicked':
+                        new_class_clicked = 'focus-on focus-last-clicked'
+                    elif previous_class_clicked == 'focus-on':
+                        new_class_clicked = 'focus-on focus-last-clicked'
+                    else:
+                        new_class_clicked = 'focus-off'
                     new_classes.append(new_class_clicked)
                 # All others retain their class name, except the previous last clicked moves to focus on
                 else:
