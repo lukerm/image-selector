@@ -236,13 +236,20 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
         return new_classes + [zoomed_img]
 
-    # Harder case: move all in a particular direction
+    # Harder case: move focus-last-clicked in a particular direction
     elif 'move-' in button_id:
 
         new_classes = []
+        cell_last_clicked = None
         for i in range(ROWS_MAX):
             for j in range(COLS_MAX):
                 my_class = args[N_GRID + j + i*COLS_MAX]
+
+                # There's no need to change the class of a cell that is hidden
+                if i >= n_rows or j >= n_cols:
+                    new_classes.append(my_class)
+                    continue
+
                 if button_id == 'move-left':
                     right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
                     check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
@@ -259,9 +266,16 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                 if 'focus-last-clicked' in my_class:
                     new_classes.append(my_class.split(' ')[0])
                 else:
-                    new_classes.append(my_class + ' focus-last-clicked' if 'focus-last-clicked' in check_class  else my_class)
+                    # In this case, we receive focus-last-clicked from the appropriate neighbour:
+                    # update our class name and note the cell location for the image zoom panel
+                    if 'focus-last-clicked' in check_class:
+                        new_classes.append(my_class + ' focus-last-clicked')
+                        cell_last_clicked = [i, j]
+                    else:
+                        new_classes.append(my_class)
 
-        return new_classes
+        zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+        return new_classes + [zoomed_img]
 
     # Reset the grid
     elif button_id == 'choose-grid-size':
@@ -271,8 +285,6 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
 
     else:
         raise ValueError('Unrecognized button ID')
-
-
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
