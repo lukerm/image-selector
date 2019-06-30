@@ -115,10 +115,13 @@ app.layout = html.Div(
                         children=create_image_grid(2, 2),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
-#                    html.Td(
-#                        create_image_grid(static_image_route + 'happyFrog.jpg', n_row, n_col),
-#                        style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
-#                        ),
+                    html.Td([
+                        html.Div(
+                            id='zoomed-image',
+                            children=IMAGE_LIST[1],
+                            style={'width': '50%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
+                        )
+                    ], style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
                 ]),
             ]),
         ]),
