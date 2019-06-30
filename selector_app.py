@@ -203,14 +203,27 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                     else:
                         new_class_clicked = 'focus-off'
                     new_classes.append(new_class_clicked)
-                # All others retain their class name, except the previous last clicked moves to focus on
+                # All others retain their class name, except the previous last clicked gets demoted
                 else:
                     previous_class = args[N_GRID + j + i*COLS_MAX]
-                    # Only demote the previous last clicked to focus-on if we are turning another cell on (not off!)
-                    if 'focus-last-clicked' in previous_class and 'focus-off' in previous_class_clicked:
+                    # If it was not previously clicked, this cell just keeps it old class name
+                    if previous_class == 'focus-on':
                         new_class = 'focus-on'
+                    elif previous_class == 'focus-off':
+                        new_class = 'focus-off'
+                    # In this case, this cell currently holds the "last clicked" status, but it must now yield it to
+                    # the newly clicked cell
+                    elif 'focus-last-clicked' in previous_class and 'focus-last-clicked' not in previous_class_clicked:
+                        new_class = previous_class.split(' ')[0]
+
                     else:
-                        new_class = previous_class
+                        # For debugging
+                        print(cell_loc)
+                        print((i, j))
+                        print(previous_class)
+                        print(previous_class_clicked)
+                        raise ValueError('Impossible combination')
+
                     new_classes.append(new_class)
 
     # Harder case: move all in a particular direction
