@@ -139,7 +139,7 @@ def create_reactive_image_grid(n_row, n_col):
 
 
 @app.callback(
-    ALL_TD_ID_OUTPUTS,
+    ALL_TD_ID_OUTPUTS + [Output('zoomed-image', 'children')],
     [
          Input('choose-grid-size', 'value'),
          Input('choose-grid-size', 'value'),
@@ -170,7 +170,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
             1) args[N_GRID:] are States (indicating state of the grid-Tds)
             Both are in row-major order (for i in rows: for j in cols: ... )
 
-    Returns: a list of new classNames for all the grid cells.
+    Returns: a list of new classNames for all the grid cells (plus one extra element for the Image that was last clicked)
 
     Note: args split into two halves:
         args[:N_GRID] are Inputs (Buttons)
@@ -180,7 +180,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        class_names = ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        zoomed_img = IMAGE_LIST[0]
+        return class_names + [zoomed_img]
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -192,6 +194,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
 
         new_classes = []
+        cell_last_clicked = None
         for i in range(ROWS_MAX):
             for j in range(COLS_MAX):
                 # Toggle the class of the pressed button
@@ -205,6 +208,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                         new_class_clicked = 'focus-on focus-last-clicked'
                     else:
                         new_class_clicked = 'focus-off'
+                    cell_last_clicked = cell_loc
                     new_classes.append(new_class_clicked)
                 # All others retain their class name, except the previous last clicked gets demoted
                 else:
@@ -228,6 +232,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                         raise ValueError('Impossible combination')
 
                     new_classes.append(new_class)
+
+        zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+        return new_classes + [zoomed_img]
 
     # Harder case: move all in a particular direction
     elif 'move-' in button_id:
@@ -254,14 +261,18 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                 else:
                     new_classes.append(my_class + ' focus-last-clicked' if 'focus-last-clicked' in check_class  else my_class)
 
+        return new_classes
+
     # Reset the grid
     elif button_id == 'choose-grid-size':
-        return ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        class_names = ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        zoomed_img = IMAGE_LIST[0]
+        return class_names + [zoomed_img]
 
     else:
         raise ValueError('Unrecognized button ID')
 
-    return new_classes
+
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
