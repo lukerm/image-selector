@@ -106,7 +106,7 @@ app.layout = html.Div(
             html.Button(id='move-right', children='Move right'),
             html.Button(id='move-up', children='Move up'),
             html.Button(id='move-down', children='Move down'),
-        ]),
+        ], style={'display': 'none'}),
         html.Div([
             html.Table([
                 html.Tr([
