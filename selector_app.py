@@ -94,7 +94,7 @@ def create_image_grid(n_row, n_col):
 app.layout = html.Div(
     children=[
         html.Div(id='hidden-div', style={'display': 'none'}),
-        html.H2("Happy Frogs"),
+        html.H2("Image Selector"),
         dcc.Dropdown(
             id='choose-grid-size',
             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
