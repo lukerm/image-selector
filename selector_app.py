@@ -318,6 +318,37 @@ def direction_key_pressed(button_id, n_rows, n_cols, *args):
     return new_classes + [zoomed_img]
 
 
+def keep_delete_pressed(button_id, n_rows, n_cols, *args):
+
+    new_classes = []
+    cell_last_clicked = None
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            my_class = args[N_GRID + j + i*COLS_MAX]
+
+            # There's no need to change the class of a cell that is hidden
+            if i >= n_rows or j >= n_cols:
+                new_classes.append(my_class)
+                continue
+
+            if 'focus' in my_class:
+                cell_last_clicked = [i, j]
+
+            # It must be in the group to be kept or deleted
+            if 'focus' in my_class and 'grouped-on' in my_class:
+                if 'keep' in button_id:
+                    new_classes.append(' '.join(class_toggle_keep(my_class.split(' '))))
+                else:
+                    assert 'delete' in button_id
+                    new_classes.append(' '.join(class_toggle_delete(my_class.split(' '))))
+
+            else:
+                new_classes.append(my_class)
+
+    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    return new_classes + [zoomed_img]
+
+
 # Functions for dealing with class names
 
 def class_toggle_grouped(class_list):
@@ -339,6 +370,20 @@ def class_toggle_focus(class_list):
         return [c for c in class_list if c != 'focus']
     else:
         return class_list + ['focus']
+
+
+def class_toggle_keep(class_list):
+    if 'keep' in class_list:
+        return [c for c in class_list if c != 'keep']
+    else:
+        return [c for c in class_list if c != 'delete'] + ['keep']
+
+
+def class_toggle_delete(class_list):
+    if 'delete' in class_list:
+        return [c for c in class_list if c != 'delete']
+    else:
+        return [c for c in class_list if c != 'keep'] + ['delete']
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
