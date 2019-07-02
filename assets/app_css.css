@@ -1,17 +1,17 @@
 .hidden {display:none;}
 .border {border:solid 1px #111111;}
 .focus {border:solid 2px blue}
-.focus-on {
+.grouped-on {
     border-style:solid;
     border-width: 3px;
     border-color: red;
 }
-.focus-off {
+.grouped-off {
     border-style:solid;
     border-width: 3px;
     border-color: white;
 }
-.focus-last-clicked {
+.focus {
     border-style:solid;
     border-width: 3px;
     border-color: blue;
