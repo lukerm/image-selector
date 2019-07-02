@@ -110,6 +110,10 @@ app.layout = html.Div(
             html.Button(id='move-down', children='Move down'),
         ], style={'display': 'none'}),
         html.Div([
+            html.Button(id='keep-button', children='Keep'),
+            html.Button(id='delete-button', children='Delete'),
+        ]),
+        html.Div([
             html.Table([
                 html.Tr([
                     html.Td(
@@ -149,10 +153,12 @@ def create_reactive_image_grid(n_row, n_col):
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
          Input('move-down', 'n_clicks'),
+         Input('keep-button', 'n_clicks'),
+         Input('delete-button', 'n_clicks'),
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -166,6 +172,8 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         n_right = int, number of clicks on the 'move-right' buttons (indicates shifting)
         n_up = int, number of clicks on the 'move-up' buttons (indicates shifting)
         n_down = int, number of clicks on the 'move-down' buttons (indicates shifting)
+        n_keep = int, number of clicks on the 'keep-button' button
+        n_delete = int, number of clicks on the 'delete-button' button
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
@@ -200,6 +208,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
         return direction_key_pressed(button_id, n_rows, n_cols, *args)
+
+    elif button_id in ['keep-button', 'delete-button']:
+        return keep_delete_pressed(button_id, n_rows, n_cols, *args)
 
     else:
         raise ValueError('Unrecognized button ID')
