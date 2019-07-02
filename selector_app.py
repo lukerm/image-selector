@@ -111,7 +111,7 @@ app.layout = html.Div(
             html.Table([
                 html.Tr([
                     html.Td(
-                        id='responsive-frogs',
+                        id='responsive-image-grid',
                         children=create_image_grid(2, 2),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
@@ -130,7 +130,7 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output('responsive-frogs', 'children'),
+    Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value')]
 )
