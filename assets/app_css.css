@@ -16,3 +16,23 @@
     border-width: 3px;
     border-color: blue;
 }
+.keep {
+  color: white;
+  background: repeating-linear-gradient(
+    45deg,
+    #1D9C0D,
+    #1D9C0D 10px,
+    #4DCF3C 10px,
+    #4DCF3C 20px
+  );
+}
+.delete {
+  color: white;
+  background: repeating-linear-gradient(
+    45deg,
+    #E61F1F,
+    #E61F1F 10px,
+    #E69695 10px,
+    #E69695 20px
+  );
+}

@@ -2,7 +2,7 @@
 Dash app for grouping images and choosing the best per-group images.
 
 The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
-clicking on it, or by using the directional buttons / keys to move the blue square around.
+clicking on it, or by using the directional keys to move the blue square around.
 
 Each grid cell (td element) will have at least one class name in {'grouped-off', 'grouped-on'}. You can have multiple cells
 with grouped-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
@@ -58,24 +58,26 @@ def create_image_grid(n_row, n_col):
     Create a grid of the same image with n_row rows and n_col columns
     """
 
-    pad = 2
+    pad = 30/min(n_row, n_col)
 
     def get_grid_element(x, y, n_x, n_y, hidden):
 
         # Set the display to none if this grid cell is hidden
         if hidden:
-            style = {'padding': 0, 'display': 'none'}
+            td_style = {'padding': 0, 'display': 'none',}
+            button_style = {'padding': 0, 'display': 'none',}
         else:
-            style = {'padding': pad}
+            td_style = {'padding': pad}
+            button_style = {'padding': 0}
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
                        className='grouped-off' if x or y else 'grouped-off focus',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
-                                            style=style,
+                                            style=button_style,
                                             ),
-                        style=style,
+                        style=td_style,
                        )
 
     grid = []
@@ -107,6 +109,10 @@ app.layout = html.Div(
             html.Button(id='move-up', children='Move up'),
             html.Button(id='move-down', children='Move down'),
         ], style={'display': 'none'}),
+        html.Div([
+            html.Button(id='keep-button', children='Keep'),
+            html.Button(id='delete-button', children='Delete'),
+        ]),
         html.Div([
             html.Table([
                 html.Tr([
@@ -147,10 +153,12 @@ def create_reactive_image_grid(n_row, n_col):
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
          Input('move-down', 'n_clicks'),
+         Input('keep-button', 'n_clicks'),
+         Input('delete-button', 'n_clicks'),
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -164,6 +172,8 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         n_right = int, number of clicks on the 'move-right' buttons (indicates shifting)
         n_up = int, number of clicks on the 'move-up' buttons (indicates shifting)
         n_down = int, number of clicks on the 'move-down' buttons (indicates shifting)
+        n_keep = int, number of clicks on the 'keep-button' button
+        n_delete = int, number of clicks on the 'delete-button' button
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
@@ -186,105 +196,194 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
-    # Easy case: toggle the state of this button (as it was pressed)
-    if 'grid-button-' in button_id:
-        # Grid location of the pressed button
-        cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
-        # Class name of the pressed button
-        previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
 
-        new_classes = []
-        cell_last_clicked = None
-        for i in range(ROWS_MAX):
-            for j in range(COLS_MAX):
-                # Toggle the class of the pressed button
-                if cell_loc == [i, j]:
-                    # Toggle the focus according to these rules
-                    if previous_class_clicked == 'grouped-off':
-                        new_class_clicked = 'grouped-on focus'
-                    elif previous_class_clicked == 'grouped-off focus':
-                        new_class_clicked = 'grouped-on focus'
-                    elif previous_class_clicked == 'grouped-on':
-                        new_class_clicked = 'grouped-on focus'
-                    else:
-                        new_class_clicked = 'grouped-off'
-                    cell_last_clicked = cell_loc
-                    new_classes.append(new_class_clicked)
-                # All others retain their class name, except the previous last clicked gets demoted
-                else:
-                    previous_class = args[N_GRID + j + i*COLS_MAX]
-                    # If it was not previously clicked, this cell just keeps it old class name
-                    if previous_class == 'grouped-on':
-                        new_class = 'grouped-on'
-                    elif previous_class == 'grouped-off':
-                        new_class = 'grouped-off'
-                    # In this case, this cell currently holds the "last clicked" status, but it must now yield it to
-                    # the newly clicked cell
-                    elif 'focus' in previous_class and 'focus' not in previous_class_clicked:
-                        new_class = previous_class.split(' ')[0]
+    # Reset the grid
+    if button_id == 'choose-grid-size':
+        return resize_grid_pressed()
 
-                    else:
-                        # For debugging
-                        print(cell_loc)
-                        print((i, j))
-                        print(previous_class)
-                        print(previous_class_clicked)
-                        raise ValueError('Impossible combination')
-
-                    new_classes.append(new_class)
-
-        zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
-        return new_classes + [zoomed_img]
+    # Toggle the state of this button (as it was pressed)
+    elif 'grid-button-' in button_id:
+        return image_cell_pressed(button_id, n_cols, *args)
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
+        return direction_key_pressed(button_id, n_rows, n_cols, *args)
 
-        new_classes = []
-        cell_last_clicked = None
-        for i in range(ROWS_MAX):
-            for j in range(COLS_MAX):
-                my_class = args[N_GRID + j + i*COLS_MAX]
-
-                # There's no need to change the class of a cell that is hidden
-                if i >= n_rows or j >= n_cols:
-                    new_classes.append(my_class)
-                    continue
-
-                if button_id == 'move-left':
-                    right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
-                    check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
-                elif button_id == 'move-right':
-                    left_ngbr_i, left_ngbr_j = i, (j-1) % n_cols
-                    check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
-                elif button_id == 'move-up':
-                    above_ngbr_i, above_ngbr_j = (i+1) % n_rows, j
-                    check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
-                elif button_id == 'move-down':
-                    below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
-                    check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
-
-                if 'focus' in my_class:
-                    new_classes.append(my_class.split(' ')[0])
-                else:
-                    # In this case, we receive focus from the appropriate neighbour:
-                    # update our class name and note the cell location for the image zoom panel
-                    if 'focus' in check_class:
-                        new_classes.append(my_class + ' focus')
-                        cell_last_clicked = [i, j]
-                    else:
-                        new_classes.append(my_class)
-
-        zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
-        return new_classes + [zoomed_img]
-
-    # Reset the grid
-    elif button_id == 'choose-grid-size':
-        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-        zoomed_img = IMAGE_LIST[0]
-        return class_names + [zoomed_img]
+    elif button_id in ['keep-button', 'delete-button']:
+        return keep_delete_pressed(button_id, n_rows, n_cols, *args)
 
     else:
         raise ValueError('Unrecognized button ID')
+
+
+def resize_grid_pressed():
+    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+    zoomed_img = IMAGE_LIST[0]
+    return class_names + [zoomed_img]
+
+
+def image_cell_pressed(button_id, n_cols, *args):
+    # Grid location of the pressed button
+    cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
+    # Class name of the pressed button
+    previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
+    previous_class_clicked = previous_class_clicked.split(' ')
+
+    new_classes = []
+    cell_last_clicked = None
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            # Toggle the class of the pressed button
+            if cell_loc == [i, j]:
+                # Toggle the focus according to these rules
+                if 'grouped-off' in previous_class_clicked and 'focus' not in previous_class_clicked:
+                    new_class_clicked = class_toggle_grouped(class_toggle_focus(previous_class_clicked))
+                elif 'grouped-off' in previous_class_clicked and 'focus' in previous_class_clicked:
+                    new_class_clicked = class_toggle_grouped(previous_class_clicked)
+                elif 'grouped-on' in previous_class_clicked and 'focus' not in previous_class_clicked:
+                    new_class_clicked = class_toggle_focus(previous_class_clicked)
+                else:
+                    assert 'grouped-on' in previous_class_clicked
+                    assert 'focus' in previous_class_clicked
+                    new_class_clicked = class_toggle_grouped(class_toggle_focus(previous_class_clicked))
+
+                cell_last_clicked = cell_loc
+                new_class_clicked = ' '.join(new_class_clicked)
+                new_classes.append(new_class_clicked)
+            # All others retain their class name, except the previous last clicked gets demoted
+            else:
+                previous_class = args[N_GRID + j + i*COLS_MAX]
+                # If it was not previously clicked, this cell just keeps it old class name
+                if 'focus' not in previous_class:
+                    new_class = previous_class
+                # In this case, this cell currently holds the "last clicked" status, but it must now yield it to
+                # the newly clicked cell
+                elif 'focus' in previous_class and 'focus' not in previous_class_clicked:
+                    new_class = ' '.join(class_toggle_focus(previous_class.split(' ')))
+
+                else:
+                    # For debugging
+                    print(cell_loc)
+                    print((i, j))
+                    print(previous_class)
+                    print(previous_class_clicked)
+                    raise ValueError('Impossible combination')
+
+                new_classes.append(new_class)
+
+    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    return new_classes + [zoomed_img]
+
+
+def direction_key_pressed(button_id, n_rows, n_cols, *args):
+
+    new_classes = []
+    cell_last_clicked = None
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            my_class = args[N_GRID + j + i*COLS_MAX]
+
+            # There's no need to change the class of a cell that is hidden
+            if i >= n_rows or j >= n_cols:
+                new_classes.append(my_class)
+                continue
+
+            if button_id == 'move-left':
+                right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
+                check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
+            elif button_id == 'move-right':
+                left_ngbr_i, left_ngbr_j = i, (j-1) % n_cols
+                check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
+            elif button_id == 'move-up':
+                above_ngbr_i, above_ngbr_j = (i+1) % n_rows, j
+                check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
+            elif button_id == 'move-down':
+                below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
+                check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
+
+            # Move focus away from the cell with it
+            if 'focus' in my_class:
+                new_classes.append(' '.join(class_toggle_focus(my_class.split(' '))))
+            else:
+                # In this case, we receive focus from the appropriate neighbour:
+                # update our class name and note the cell location for the image zoom panel
+                # Note: as the focus was previously elsewhere, we cannot have it
+                if 'focus' in check_class:
+                    new_classes.append(' '.join(class_toggle_focus(my_class.split(' '))))
+                    cell_last_clicked = [i, j]
+                else:
+                    new_classes.append(my_class)
+
+    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    return new_classes + [zoomed_img]
+
+
+def keep_delete_pressed(button_id, n_rows, n_cols, *args):
+
+    new_classes = []
+    cell_last_clicked = None
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            my_class = args[N_GRID + j + i*COLS_MAX]
+
+            # There's no need to change the class of a cell that is hidden
+            if i >= n_rows or j >= n_cols:
+                new_classes.append(my_class)
+                continue
+
+            if 'focus' in my_class:
+                cell_last_clicked = [i, j]
+
+            # It must be in the group to be kept or deleted
+            if 'focus' in my_class and 'grouped-on' in my_class:
+                if 'keep' in button_id:
+                    new_classes.append(' '.join(class_toggle_keep(my_class.split(' '))))
+                else:
+                    assert 'delete' in button_id
+                    new_classes.append(' '.join(class_toggle_delete(my_class.split(' '))))
+
+            else:
+                new_classes.append(my_class)
+
+    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    return new_classes + [zoomed_img]
+
+
+# Functions for dealing with class names
+
+def class_toggle_grouped(class_list):
+
+    new_class_list = []
+    for c in class_list:
+        if c == 'grouped-on':
+            new_class_list.append('grouped-off')
+        elif c == 'grouped-off':
+            new_class_list.append('grouped-on')
+        else:
+            new_class_list.append(c)
+
+    return new_class_list
+
+
+def class_toggle_focus(class_list):
+    if 'focus' in class_list:
+        return [c for c in class_list if c != 'focus']
+    else:
+        return class_list + ['focus']
+
+
+def class_toggle_keep(class_list):
+    if 'keep' in class_list:
+        return [c for c in class_list if c != 'keep']
+    else:
+        return [c for c in class_list if c != 'delete'] + ['keep']
+
+
+def class_toggle_delete(class_list):
+    if 'delete' in class_list:
+        return [c for c in class_list if c != 'delete']
+    else:
+        return [c for c in class_list if c != 'keep'] + ['delete']
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
