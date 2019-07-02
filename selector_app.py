@@ -4,15 +4,15 @@ Dash app for grouping images and choosing the best per-group images.
 The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
 clicking on it, or by using the directional buttons / keys to move the blue square around.
 
-Each grid cell (td element) will have at least one class name in {'focus-off', 'focus-on'}. You can have multiple cells
-with focus-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
-the 'focus-off' will (often) have no border, with one exception. A cell can have 'focus-on' or 'focus-off' but not both.
+Each grid cell (td element) will have at least one class name in {'grouped-off', 'grouped-on'}. You can have multiple cells
+with grouped-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
+the 'grouped-off' will (often) have no border, with one exception. A cell can have 'grouped-on' or 'grouped-off' but not both.
 
-Additionally, one cell can have the special 'focus-last-clicked' class (currently blue border). This applies to one cell -
+Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
-Note: the way this is coded means that the class ordering is always as follows: 'focus-o[n|ff][ focus-last-clicked]'.
+Note: the way this is coded means that the class ordering is always as follows: 'grouped-o[n|ff][ focus]'.
         This is not ideal and maybe fixed in the future so that the order does not matter.
 """
 
@@ -70,7 +70,7 @@ def create_image_grid(n_row, n_col):
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
-                       className='focus-off' if x or y else 'focus-off focus-last-clicked',
+                       className='grouped-off' if x or y else 'grouped-off focus',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
                                             style=style,
@@ -180,7 +180,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        class_names = ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
         zoomed_img = IMAGE_LIST[0]
         return class_names + [zoomed_img]
     else:
@@ -200,27 +200,27 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                 # Toggle the class of the pressed button
                 if cell_loc == [i, j]:
                     # Toggle the focus according to these rules
-                    if previous_class_clicked == 'focus-off':
-                        new_class_clicked = 'focus-on focus-last-clicked'
-                    elif previous_class_clicked == 'focus-off focus-last-clicked':
-                        new_class_clicked = 'focus-on focus-last-clicked'
-                    elif previous_class_clicked == 'focus-on':
-                        new_class_clicked = 'focus-on focus-last-clicked'
+                    if previous_class_clicked == 'grouped-off':
+                        new_class_clicked = 'grouped-on focus'
+                    elif previous_class_clicked == 'grouped-off focus':
+                        new_class_clicked = 'grouped-on focus'
+                    elif previous_class_clicked == 'grouped-on':
+                        new_class_clicked = 'grouped-on focus'
                     else:
-                        new_class_clicked = 'focus-off'
+                        new_class_clicked = 'grouped-off'
                     cell_last_clicked = cell_loc
                     new_classes.append(new_class_clicked)
                 # All others retain their class name, except the previous last clicked gets demoted
                 else:
                     previous_class = args[N_GRID + j + i*COLS_MAX]
                     # If it was not previously clicked, this cell just keeps it old class name
-                    if previous_class == 'focus-on':
-                        new_class = 'focus-on'
-                    elif previous_class == 'focus-off':
-                        new_class = 'focus-off'
+                    if previous_class == 'grouped-on':
+                        new_class = 'grouped-on'
+                    elif previous_class == 'grouped-off':
+                        new_class = 'grouped-off'
                     # In this case, this cell currently holds the "last clicked" status, but it must now yield it to
                     # the newly clicked cell
-                    elif 'focus-last-clicked' in previous_class and 'focus-last-clicked' not in previous_class_clicked:
+                    elif 'focus' in previous_class and 'focus' not in previous_class_clicked:
                         new_class = previous_class.split(' ')[0]
 
                     else:
@@ -236,7 +236,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
         zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
         return new_classes + [zoomed_img]
 
-    # Harder case: move focus-last-clicked in a particular direction
+    # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
 
         new_classes = []
@@ -263,13 +263,13 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
                     below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
                     check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
 
-                if 'focus-last-clicked' in my_class:
+                if 'focus' in my_class:
                     new_classes.append(my_class.split(' ')[0])
                 else:
-                    # In this case, we receive focus-last-clicked from the appropriate neighbour:
+                    # In this case, we receive focus from the appropriate neighbour:
                     # update our class name and note the cell location for the image zoom panel
-                    if 'focus-last-clicked' in check_class:
-                        new_classes.append(my_class + ' focus-last-clicked')
+                    if 'focus' in check_class:
+                        new_classes.append(my_class + ' focus')
                         cell_last_clicked = [i, j]
                     else:
                         new_classes.append(my_class)
@@ -279,7 +279,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, *ar
 
     # Reset the grid
     elif button_id == 'choose-grid-size':
-        class_names = ['focus-off focus-last-clicked' if i+j == 0 else 'focus-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
         zoomed_img = IMAGE_LIST[0]
         return class_names + [zoomed_img]
 
