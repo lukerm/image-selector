@@ -58,24 +58,26 @@ def create_image_grid(n_row, n_col):
     Create a grid of the same image with n_row rows and n_col columns
     """
 
-    pad = 2
+    pad = 30/min(n_row, n_col)
 
     def get_grid_element(x, y, n_x, n_y, hidden):
 
         # Set the display to none if this grid cell is hidden
         if hidden:
-            style = {'padding': 0, 'display': 'none'}
+            td_style = {'padding': 0, 'display': 'none',}
+            button_style = {'padding': 0, 'display': 'none',}
         else:
-            style = {'padding': pad}
+            td_style = {'padding': pad}
+            button_style = {'padding': 0}
 
         my_id = f'{x}-{y}'
         return html.Td(id='grid-td-' + my_id,
                        className='grouped-off' if x or y else 'grouped-off focus',
                        children=html.Button(id='grid-button-' + my_id,
                                             children=IMAGE_LIST[y + x*n_y],
-                                            style=style,
+                                            style=button_style,
                                             ),
-                        style=style,
+                        style=td_style,
                        )
 
     grid = []
