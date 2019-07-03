@@ -112,7 +112,7 @@ app.layout = html.Div(
         html.Div([
             html.Button(id='keep-button', children='Keep'),
             html.Button(id='delete-button', children='Delete'),
-        ]),
+        ], style={'display': 'none'}),
         html.Div([
             html.Table([
                 html.Tr([

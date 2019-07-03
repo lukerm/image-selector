@@ -13,4 +13,10 @@ function clickButtonFunction(event){
   if(event.key == 'ArrowDown'){
     document.getElementById("move-down").click();
   }
+  if(event.key == '='){
+    document.getElementById("keep-button").click();
+  }
+  if(event.key == 'Backspace'){
+    document.getElementById("delete-button").click();
+  }
 }
