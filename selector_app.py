@@ -164,6 +164,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         1) Pressing a grid cell will toggle its state
         2) Pressing a directional button will force the "last-clicked" focus (only) to shift in the direction stated
         3) Resizing the grid will cause the top-left only to be in last-click focus
+        4) Mark a cell as keep or delete (must already have "grouped-on" class)
+
+    Note: some of these operations respond to key presses (e.g. directional buttons), which click hidden buttons.
 
     Args:
         n_rows = int, current number of rows in the grid (indicates resizing)
