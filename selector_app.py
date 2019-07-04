@@ -245,7 +245,7 @@ def image_cell_pressed(button_id, n_cols, *args):
                 else:
                     assert 'grouped-on' in previous_class_clicked
                     assert 'focus' in previous_class_clicked
-                    new_class_clicked = class_toggle_grouped(class_toggle_focus(previous_class_clicked))
+                    new_class_clicked = class_turn_off_keep_delete(class_toggle_grouped(class_toggle_focus(previous_class_clicked)))
 
                 cell_last_clicked = cell_loc
                 new_class_clicked = ' '.join(new_class_clicked)
@@ -384,6 +384,10 @@ def class_toggle_delete(class_list):
         return [c for c in class_list if c != 'delete']
     else:
         return [c for c in class_list if c != 'keep'] + ['delete']
+
+
+def class_turn_off_keep_delete(class_list):
+    return [c for c in class_list if c not in ['keep', 'delete']]
 
 
 @app.server.route('{}<image_path>'.format(static_image_route))
