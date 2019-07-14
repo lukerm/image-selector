@@ -19,6 +19,8 @@ Note: the way this is coded means that the class ordering is always as follows: 
 import os
 import re
 
+import subprocess
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -36,6 +38,9 @@ static_image_route = '/static/'
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
 N_GRID = ROWS_MAX * COLS_MAX
+
+# Allowed file extension for image types
+IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
 
 # Globals for the images
 img_fname = 'happyFrog.jpg' # Default image
@@ -97,6 +102,29 @@ app.layout = html.Div(
     children=[
         html.Div(id='hidden-div', style={'display': 'none'}),
         html.H2("Image Selector"),
+        dcc.Upload(
+                id='upload-image',
+                children=html.Div([
+                    'Drag and Drop or ',
+                    html.A('Select Images')
+                ]),
+                style={
+                    'width': '30vw',
+                    'height': '60px',
+                    'lineHeight': '60px',
+                    'borderWidth': '1px',
+                    'borderStyle': 'dashed',
+                    'borderRadius': '5px',
+                    'textAlign': 'center',
+                },
+                multiple=True
+            ),
+        dcc.Dropdown(
+            id='choose-image-path',
+            options=[{'label': 'NO IMAGE SELECTED', 'value': 0}],
+            value=0,
+            style={'width': '25vw', 'display': 'inline-block'}
+        ),
         dcc.Dropdown(
             id='choose-grid-size',
             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
@@ -133,6 +161,55 @@ app.layout = html.Div(
         ]),
     ]
 )
+
+
+@app.callback(
+    [Output('choose-image-path', 'options'), Output('choose-image-path', 'value')],
+    [Input('upload-image', 'contents')],
+    [State('upload-image', 'filename')]
+)
+def update_image_path_selector(contents_list, filenames_list):
+    if contents_list is not None:
+        for fname in filenames_list:
+            options_list = parse_image_upload(fname)
+            if len(options_list) > 0:
+                return (options_list, 0)
+            else:
+                continue
+
+    return ([{'label': 'NO IMAGE SELECTED', 'value': 0}], 0)
+
+
+def parse_image_upload(filename):
+    """
+    Given an image filename, create a list of options for the 'options' for the Dropdown that chooses
+    which path the image should be loaded from.
+    """
+    is_image = False
+    for img_type in IMAGE_TYPES:
+        if img_type in filename:
+            is_image = True
+            break
+
+    if is_image:
+        path_options = find_image_dir_on_system(filename)
+        if len(path_options) > 0:
+            return [{'label': path, 'value': i} for i, path in enumerate(path_options)]
+        else:
+            return []
+    else:
+        return []
+
+
+def find_image_dir_on_system(img_fname):
+    """
+    Find the location(s) of the given filename on the file system.
+
+    Returns: list of filepaths (excluding filename) where the file can be found.
+    """
+    path_options = subprocess.check_output(['find', os.path.expanduser('~'), '-name', img_fname]).decode()
+    path_options = ['/'.join(f.split('/')[:-1]) for f in path_options.split('\n') if len(f) > 0]
+    return path_options
 
 
 @app.callback(
