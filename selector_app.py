@@ -33,7 +33,7 @@ app = dash.Dash(__name__)
 
 # Assumes that images are stored in the img/ directory for now
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
-static_image_route = '/static/'
+static_image_route = '/'
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
@@ -51,6 +51,7 @@ img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
 IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
 IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
+EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
 ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
@@ -58,43 +59,50 @@ ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS
 ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
 
-def create_image_grid(n_row, n_col):
+def create_image_grid(n_row, n_col, image_list):
     """
     Create a grid of the same image with n_row rows and n_col columns
     """
 
-    pad = 30/min(n_row, n_col)
-
-    def get_grid_element(x, y, n_x, n_y, hidden):
-
-        # Set the display to none if this grid cell is hidden
-        if hidden:
-            td_style = {'padding': 0, 'display': 'none',}
-            button_style = {'padding': 0, 'display': 'none',}
-        else:
-            td_style = {'padding': pad}
-            button_style = {'padding': 0}
-
-        my_id = f'{x}-{y}'
-        return html.Td(id='grid-td-' + my_id,
-                       className='grouped-off' if x or y else 'grouped-off focus',
-                       children=html.Button(id='grid-button-' + my_id,
-                                            children=IMAGE_LIST[y + x*n_y],
-                                            style=button_style,
-                                            ),
-                        style=td_style,
-                       )
+    # Unpack the image_list if necessary
+    if type(image_list) is dict:
+        image_list = image_list['props']['children']
+    if len(image_list) < ROWS_MAX * COLS_MAX:
+        image_list = image_list + [EMPTY_IMAGE]*(ROWS_MAX * COLS_MAX - len(image_list))
 
     grid = []
     for i in range(ROWS_MAX):
         row = []
         for j in range(COLS_MAX):
             hidden = (i >= n_row) or (j >= n_col)
-            row.append(get_grid_element(i, j, n_row, n_col, hidden))
+            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
         row = html.Tr(row)
         grid.append(row)
 
     return html.Div(html.Table(grid))
+
+
+def get_grid_element(image_list, x, y, n_x, n_y, hidden):
+
+    pad = 30/min(n_x, n_y)
+
+    # Set the display to none if this grid cell is hidden
+    if hidden:
+        td_style = {'padding': 0, 'display': 'none',}
+        button_style = {'padding': 0, 'display': 'none',}
+    else:
+        td_style = {'padding': pad}
+        button_style = {'padding': 0}
+
+    my_id = f'{x}-{y}'
+    return html.Td(id='grid-td-' + my_id,
+                   className='grouped-off' if x or y else 'grouped-off focus',
+                   children=html.Button(id='grid-button-' + my_id,
+                                        children=image_list[y + x*n_y],
+                                        style=button_style,
+                                        ),
+                    style=td_style,
+                   )
 
 
 # App's layout
@@ -109,7 +117,7 @@ app.layout = html.Div(
                     html.A('Select Images')
                 ]),
                 style={
-                    'width': '30vw',
+                    'width': '40vw',
                     'height': '60px',
                     'lineHeight': '60px',
                     'borderWidth': '1px',
@@ -118,18 +126,23 @@ app.layout = html.Div(
                     'textAlign': 'center',
                 },
                 multiple=True
-            ),
+        ),
         dcc.Dropdown(
             id='choose-image-path',
             options=[{'label': 'NO IMAGE SELECTED', 'value': 0}],
             value=0,
-            style={'width': '25vw', 'display': 'inline-block'}
+            style={'width': '40vw',}
+        ),
+        html.Button(
+            id='confirm-load-directory',
+            children='Load directory',
+            style={'width': '10vw', }
         ),
         dcc.Dropdown(
             id='choose-grid-size',
             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
             value=2,
-            style={'width': '5vw', 'display': 'inline-block'}
+            style={'width': '10vw'}
         ),
         html.Div([
             html.Button(id='move-left', children='Move left'),
@@ -146,7 +159,7 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-image-grid',
-                        children=create_image_grid(2, 2),
+                        children=create_image_grid(2, 2, IMAGE_LIST),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
                     html.Td([
@@ -159,6 +172,7 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
+        html.Div(id='image-container', children=html.Tr(IMAGE_LIST),)
     ]
 )
 
@@ -213,12 +227,30 @@ def find_image_dir_on_system(img_fname):
 
 
 @app.callback(
+    Output('image-container', 'children'),
+    [Input('confirm-load-directory', 'n_clicks')],
+    [State('choose-image-path', 'value'), State('choose-image-path', 'options')]
+)
+def load_images(n, dropdown_value, dropdown_opts):
+    opts = {d['value']: d['label'] for d in dropdown_opts}
+    image_dir = opts[dropdown_value]
+
+    try:
+        images = [os.path.join(static_image_route, fname) for fname in sorted(os.listdir(image_dir))]
+        image_list = [html.Img(src=img, style=img_style) for img in images]
+        return html.Tr(image_list)
+    except FileNotFoundError:
+        return html.Tr([])
+
+
+@app.callback(
     Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
-     Input('choose-grid-size', 'value')]
+     Input('choose-grid-size', 'value'),
+     Input('image-container', 'children')]
 )
-def create_reactive_image_grid(n_row, n_col):
-    return create_image_grid(n_row, n_col)
+def create_reactive_image_grid(n_row, n_col, image_list):
+    return create_image_grid(n_row, n_col, image_list)
 
 
 @app.callback(
