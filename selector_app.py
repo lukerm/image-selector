@@ -19,6 +19,7 @@ Note: the way this is coded means that the class ordering is always as follows: 
 import os
 import re
 
+import shutil
 import subprocess
 
 import dash
@@ -34,6 +35,7 @@ app = dash.Dash(__name__)
 # Assumes that images are stored in the img/ directory for now
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 static_image_route = '/'
+TMP_DIR = '/tmp'
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
@@ -235,12 +237,61 @@ def load_images(n, dropdown_value, dropdown_opts):
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
+#    # Set up a temporary location to copy images to
+#    my_tmp_dir = f'image_selector_{n}'
+#    my_tmp_fpath = os.path.join(TMP_DIR, my_tmp_dir)
+#    print('tmp_path')
+#    print(my_tmp_fpath)
+#    if os.path.exists(my_tmp_fpath):
+#        shutil.rmtree(my_tmp_fpath)
+#    os.makedirs(my_tmp_fpath, exist_ok=True)
+
+    image_list = []
     try:
-        images = [os.path.join(static_image_route, fname) for fname in sorted(os.listdir(image_dir))]
-        image_list = [html.Img(src=img, style=img_style) for img in images]
-        return html.Tr(image_list)
+        for fname in sorted(os.listdir(image_dir)):
+            #static_image_path = copy_image(fname, image_dir, my_tmp_dir) # TODO
+            static_image_path = copy_image(fname, image_dir, TMP_DIR)
+
+            if static_image_path is not None:
+                print(static_image_path)
+                image_list.append(html.Img(src=static_image_path, style=img_style))
     except FileNotFoundError:
         return html.Tr([])
+
+    return html.Tr(image_list)
+
+
+def copy_image(fname, src_path, dst_path):
+    """
+    Perform a copy of the file if it is an image. It will be copied to TMP_DIR+dst_path.
+
+    Args:
+        fname = str, query filename (no path)
+        src_path = str, directory of where to copy from (no filename)
+        dst_path = str, directory of where to copy to (will get appended to TMP_DIR, no filename)
+
+    Returns: str, full filepath that the server is expecting
+             or None, if not an valid image type (see IMAGE_TYPES)
+    """
+
+    # Check if it's a valid image (by extension)
+    is_image = False
+    for img_type in IMAGE_TYPES:
+        if img_type in fname:
+            is_image = True
+            break
+    # Only copy images
+    if not is_image:
+        return
+
+    # Copy the file to the temporary location (that can be served)
+    shutil.copyfile(os.path.join(src_path, fname), os.path.join(TMP_DIR, dst_path, fname))
+    # Append the Img object with the static path
+    #static_image_path = os.path.join(static_image_route, dst_path, fname) # TODO
+    static_image_path = os.path.join(static_image_route, fname)
+
+    return static_image_path
+
 
 
 @app.callback(
@@ -511,7 +562,7 @@ def serve_image(image_path):
     # For more secure deployment, see: https://github.com/plotly/dash/issues/71#issuecomment-313222343
     #if image_name not in list_of_images:
     #    raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
-    return flask.send_from_directory(image_directory, image_name)
+    return flask.send_from_directory(TMP_DIR, image_name)
 
 
 if __name__ == '__main__':
