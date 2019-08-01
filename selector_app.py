@@ -237,19 +237,9 @@ def load_images(n, dropdown_value, dropdown_opts):
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
-#    # Set up a temporary location to copy images to
-#    my_tmp_dir = f'image_selector_{n}'
-#    my_tmp_fpath = os.path.join(TMP_DIR, my_tmp_dir)
-#    print('tmp_path')
-#    print(my_tmp_fpath)
-#    if os.path.exists(my_tmp_fpath):
-#        shutil.rmtree(my_tmp_fpath)
-#    os.makedirs(my_tmp_fpath, exist_ok=True)
-
     image_list = []
     try:
         for fname in sorted(os.listdir(image_dir)):
-            #static_image_path = copy_image(fname, image_dir, my_tmp_dir) # TODO
             static_image_path = copy_image(fname, image_dir, TMP_DIR)
 
             if static_image_path is not None:
