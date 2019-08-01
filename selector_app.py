@@ -253,12 +253,12 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 def copy_image(fname, src_path, dst_path):
     """
-    Perform a copy of the file if it is an image. It will be copied to TMP_DIR+dst_path.
+    Perform a copy of the file if it is an image. It will be copied to dst_path.
 
     Args:
         fname = str, query filename (no path)
         src_path = str, directory of where to copy from (no filename)
-        dst_path = str, directory of where to copy to (will get appended to TMP_DIR, no filename)
+        dst_path = str, directory of where to copy to (no filename)
 
     Returns: str, full filepath that the server is expecting
              or None, if not an valid image type (see IMAGE_TYPES)
@@ -275,9 +275,8 @@ def copy_image(fname, src_path, dst_path):
         return
 
     # Copy the file to the temporary location (that can be served)
-    shutil.copyfile(os.path.join(src_path, fname), os.path.join(TMP_DIR, dst_path, fname))
+    shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
     # Append the Img object with the static path
-    #static_image_path = os.path.join(static_image_route, dst_path, fname) # TODO
     static_image_path = os.path.join(static_image_route, fname)
 
     return static_image_path
