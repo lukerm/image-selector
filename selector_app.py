@@ -16,6 +16,9 @@ Note: the way this is coded means that the class ordering is always as follows: 
         This is not ideal and maybe fixed in the future so that the order does not matter.
 """
 
+
+## Imports ##
+
 import os
 import re
 
@@ -28,6 +31,9 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 import flask
+
+
+## Constants ##
 
 app = dash.Dash(__name__)
 
@@ -55,6 +61,8 @@ ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS
 ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
+
+## Functions ##
 
 def create_image_grid(n_row, n_col, image_list):
     """
@@ -133,6 +141,9 @@ def copy_image(fname, src_path, dst_path):
     return static_image_path
 
 
+## Main ##
+
+
 # List of image objects - pre-load here to avoid re-loading on every grid re-sizing
 images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
 IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
@@ -143,6 +154,8 @@ EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
 for fname in sorted(os.listdir(image_directory)):
     static_image_path = copy_image(fname, image_directory, TMP_DIR)
 
+
+## Layout ##
 
 # App's layout
 app.layout = html.Div(
@@ -215,6 +228,8 @@ app.layout = html.Div(
     ]
 )
 
+
+## Callbacks ##
 
 @app.callback(
     [Output('choose-image-path', 'options'), Output('choose-image-path', 'value')],
