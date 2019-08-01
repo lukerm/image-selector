@@ -167,7 +167,7 @@ app.layout = html.Div(
                     html.Td([
                         html.Div(
                             id='zoomed-image',
-                            children=IMAGE_LIST[1],
+                            children=IMAGE_LIST[0],
                             style={'width': '50%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
                         )
                     ], style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
