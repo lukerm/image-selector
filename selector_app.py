@@ -174,7 +174,7 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
-        html.Div(id='image-container', children=html.Tr(IMAGE_LIST),)
+        html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'})
     ]
 )
 
