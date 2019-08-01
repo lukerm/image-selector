@@ -315,10 +315,11 @@ def create_reactive_image_grid(n_row, n_col, image_list):
          Input('move-down', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
+         Input('image-container', 'children'),
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -331,12 +332,13 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     Args:
         n_rows = int, current number of rows in the grid (indicates resizing)
         n_cols = int, current number of columns in the grid (indicates resizing)
-        n_left = int, number of clicks on the 'move-left' buttons (indicates shifting)
-        n_right = int, number of clicks on the 'move-right' buttons (indicates shifting)
-        n_up = int, number of clicks on the 'move-up' buttons (indicates shifting)
-        n_down = int, number of clicks on the 'move-down' buttons (indicates shifting)
+        n_left = int, number of clicks on the 'move-left' button (indicates shifting)
+        n_right = int, number of clicks on the 'move-right' button (indicates shifting)
+        n_up = int, number of clicks on the 'move-up' button (indicates shifting)
+        n_down = int, number of clicks on the 'move-down' button (indicates shifting)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
+        image_list = dict, containing a list of Img objects under ['props']['children']
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
@@ -350,42 +352,48 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         args[N_GRID:] are States (Tds)
     """
 
+    # Unpack the image list
+    if image_list:
+        image_list = image_list['props']['children']
+
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
         class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-        zoomed_img = IMAGE_LIST[0]
+        zoomed_img = image_list[0]
         return class_names + [zoomed_img]
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
 
     # Reset the grid
-    if button_id == 'choose-grid-size':
-        return resize_grid_pressed()
+    # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
+    #       inside image-container in order to populate the grid)
+    if button_id in ['choose-grid-size', 'image-container']:
+        return resize_grid_pressed(image_list)
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        return image_cell_pressed(button_id, n_cols, *args)
+        return image_cell_pressed(button_id, n_cols, image_list, *args)
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        return direction_key_pressed(button_id, n_rows, n_cols, *args)
+        return direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
 
     elif button_id in ['keep-button', 'delete-button']:
-        return keep_delete_pressed(button_id, n_rows, n_cols, *args)
+        return keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
 
     else:
-        raise ValueError('Unrecognized button ID')
+        raise ValueError('Unrecognized button ID: %s' % str(button_id))
 
 
-def resize_grid_pressed():
+def resize_grid_pressed(image_list):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-    zoomed_img = IMAGE_LIST[0]
+    zoomed_img = image_list[0] if len(image_list) > 0 else EMPTY_IMAGE
     return class_names + [zoomed_img]
 
 
-def image_cell_pressed(button_id, n_cols, *args):
+def image_cell_pressed(button_id, n_cols, image_list, *args):
     # Grid location of the pressed button
     cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
     # Class name of the pressed button
@@ -434,11 +442,11 @@ def image_cell_pressed(button_id, n_cols, *args):
 
                 new_classes.append(new_class)
 
-    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
-def direction_key_pressed(button_id, n_rows, n_cols, *args):
+def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
 
     new_classes = []
     cell_last_clicked = None
@@ -477,11 +485,11 @@ def direction_key_pressed(button_id, n_rows, n_cols, *args):
                 else:
                     new_classes.append(my_class)
 
-    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
-def keep_delete_pressed(button_id, n_rows, n_cols, *args):
+def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
 
     new_classes = []
     cell_last_clicked = None
@@ -508,7 +516,7 @@ def keep_delete_pressed(button_id, n_rows, n_cols, *args):
             else:
                 new_classes.append(my_class)
 
-    zoomed_img = IMAGE_LIST[cell_last_clicked[1] + cell_last_clicked[0]*n_cols]
+    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
