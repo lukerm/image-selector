@@ -69,9 +69,6 @@ def create_image_grid(n_row, n_col, image_list):
     Create a grid of the same image with n_row rows and n_col columns
     """
 
-    # Unpack the image_list if necessary
-    if type(image_list) is dict:
-        image_list = image_list['props']['children']
     if len(image_list) < ROWS_MAX * COLS_MAX:
         image_list = image_list + [EMPTY_IMAGE]*(ROWS_MAX * COLS_MAX - len(image_list))
 
@@ -407,9 +404,20 @@ def create_flat_mask(image_mask, len_image_container):
     Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value'),
-     Input('image-container', 'children')]
+     Input('image-container', 'children'),
+     Input('image-mask', 'data'),
+    ]
 )
-def create_reactive_image_grid(n_row, n_col, image_list):
+def create_reactive_image_grid(n_row, n_col, image_list, image_mask):
+
+    # Unpack the image_list if necessary
+    if type(image_list) is dict:
+        image_list = image_list['props']['children']
+
+    # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
+    flat_mask = create_flat_mask(image_mask, len(image_list))
+    image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
+
     return create_image_grid(n_row, n_col, image_list)
 
 
