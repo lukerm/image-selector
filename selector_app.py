@@ -16,6 +16,9 @@ Note: the way this is coded means that the class ordering is always as follows: 
         This is not ideal and maybe fixed in the future so that the order does not matter.
 """
 
+# TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
+#                   > Click Backspace / +
+
 
 ## Imports ##
 
