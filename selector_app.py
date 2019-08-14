@@ -185,11 +185,22 @@ app.layout = html.Div(
             value=0,
             style={'width': '40vw',}
         ),
-        html.Button(
-            id='confirm-load-directory',
-            children='Load directory',
-            style={'width': '10vw', }
-        ),
+        html.Tr([
+            html.Td([
+                html.Button(
+                    id='confirm-load-directory',
+                    children='Load directory',
+                    style={'width': '10vw', }
+                ),
+            ]),
+            html.Td([
+                html.Button(
+                    id='complete-group',
+                    children='Complete group',
+                    style={'width': '10vw', }
+                )
+            ]),
+        ]),
         dcc.Dropdown(
             id='choose-grid-size',
             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
