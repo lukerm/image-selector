@@ -362,6 +362,47 @@ def complete_image_group(n_group, n_rows, n_cols, image_mask, *args):
     return image_mask
 
 
+def create_flat_mask(image_mask, len_image_container):
+    """
+    Unpack the image mask into a flat list which states which images from the image container should be masked (as they
+    have already been completed by the user).
+
+    Note: each element (list) in the image mask represents a group of images. The int values in that group state the grid
+          positions (0..n_rows*n_cols) of those images at the time they were grouped, not taking into account previously
+          grouped images. Hence, the image mask must unpacked in order, from left (past) to right (present), in order to
+          calculate the true mask on the image container.
+
+    Args:
+        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
+        len_image_container = int, length of the image container (all images) for the current working directory
+
+    Returns:
+        list, of bool, stating which images should not be shown if they would otherwise be shown in the visible grid
+
+
+    >>> create_flat_mask([[0, 1], [0, 1, 2]], 9)
+    [True, True, True, True, True, False, False, False, False]
+
+    >>> create_flat_mask([[7, 8], [0, 1, 3, 4]], 10)
+    [True, True, False, True, True, False, False, True, True, False]
+
+    Is this example correct?
+    >>> create_flat_mask([[0, 1], [1, 2, 3], [1]], 10)
+    [True, True, False, True, True, True, True, False, False, False]
+    """
+
+    true_mask = [False]*len_image_container
+    for group in image_mask:
+        available_count = -1
+        for i, b in enumerate(true_mask):
+            if not b:
+                available_count += 1
+                if available_count in group:
+                    true_mask[i] = True # mask it
+
+    return true_mask
+
+
 @app.callback(
     Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
