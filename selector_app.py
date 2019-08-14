@@ -235,7 +235,9 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
-        html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'})
+        html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'}),
+        # The underlying mask is a list of lists of ints, which can be handled by the Store component
+        dcc.Store(id='image-mask', data=[]),
     ]
 )
 
