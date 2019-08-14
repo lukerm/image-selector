@@ -433,10 +433,11 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_mask):
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'children'),
+         Input('image-mask', 'data'),
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_mask, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -456,6 +457,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         image_list = dict, containing a list of Img objects under ['props']['children']
+        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
@@ -469,9 +471,13 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         args[N_GRID:] are States (Tds)
     """
 
-    # Unpack the image list
+    # Unpack the image list / mask
     if image_list:
         image_list = image_list['props']['children']
+
+    # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
+    flat_mask = create_flat_mask(image_mask, len(image_list))
+    image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
@@ -486,7 +492,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Reset the grid
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
-    if button_id in ['choose-grid-size', 'image-container']:
+    if button_id in ['choose-grid-size', 'image-container', 'image-mask']:
         return resize_grid_pressed(image_list)
 
     # Toggle the state of this button (as it was pressed)
