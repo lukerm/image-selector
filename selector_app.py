@@ -233,8 +233,9 @@ app.layout = html.Div(
             ]),
         ]),
         html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'}),
-        # The underlying mask is a list of lists of ints, which can be handled by the Store component
-        dcc.Store(id='image-mask', data=[]),
+        # The underlying mask is a dict, where each entry is a list of lists of ints
+        # This data structure can be handled by the Store component (as it's serializable)
+        dcc.Store(id='image-meta-data', data={'position': [], 'keep': []}),
     ]
 )
 
@@ -317,15 +318,15 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 
 @app.callback(
-    Output('image-mask', 'data'),
+    Output('image-meta-data', 'data'),
     [
      Input('complete-group', 'n_clicks'),
      Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value'),
     ],
-    [State('image-mask', 'data'),] + ALL_TD_ID_STATES
+    [State('image-meta-data', 'data'),] + ALL_TD_ID_STATES
 )
-def complete_image_group(n_group, n_rows, n_cols, image_mask, *args):
+def complete_image_group(n_group, n_rows, n_cols, image_data, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated.
@@ -334,28 +335,45 @@ def complete_image_group(n_group, n_rows, n_cols, image_mask, *args):
         n_group = int, number of times the complete-group button is clicked (Input)
         n_rows = int, current number of rows in the grid (Input: indicates resizing)
         n_cols = int, current number of columns in the grid (Input: indicates resizing)
-        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed / grouped (State)
+        image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
+                     Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
 
     Returns:
         updated version of the image mask (if any new group was legitimately completed)
     """
 
-    # TODO: block the completion if keep / delete metadata is not fully specified
-
     # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
-    grouped_grid_cells = []
+    grouped_cell_positions = []
+    grouped_cell_keeps = []
     for i in range(ROWS_MAX):
         for j in range(COLS_MAX):
+            # Get the class list (str) for this cell
             my_class = args[j + i*COLS_MAX]
+            # Position on the visible grid
+            list_pos = j + i*n_rows
+
+            # Check if selected to be in the group, add position if on
             if 'grouped-on' in my_class:
-                # flattten again, taking into account the current visible grid
-                list_pos = j + i*n_rows
-                grouped_grid_cells.append(list_pos)
+                grouped_cell_positions.append(list_pos)
 
-    if len(grouped_grid_cells) > 0:
-        image_mask.append(grouped_grid_cells)
+            # Check for keep / delete status
+            # Note: important not to append if keep/delete status not yet specified
+            if 'keep' in my_class:
+                grouped_cell_keeps.append(True)
+            elif 'delete' in my_class:
+                grouped_cell_keeps.append(False)
+            else:
+                pass
 
-    return image_mask
+    # Check 1: some data has been collected since last click (no point appending empty lists)
+    # Check 2: list lengths match, i.e. for each cell in the group, the keep / delete status has been declared
+    # If either check fails, do nothing
+    # TODO: flag something (warning?) to user if list lengths do not match
+    if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
+        image_data['position'].append(grouped_cell_positions)
+        image_data['keep'].append(grouped_cell_keeps)
+
+    return image_data
 
 
 def create_flat_mask(image_mask, len_image_container):
@@ -370,6 +388,7 @@ def create_flat_mask(image_mask, len_image_container):
 
     Args:
         image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
+                     Note: this is stored in the 'position' key in the image-meta-data
         len_image_container = int, length of the image container (all images) for the current working directory
 
     Returns:
@@ -382,7 +401,6 @@ def create_flat_mask(image_mask, len_image_container):
     >>> create_flat_mask([[7, 8], [0, 1, 3, 4]], 10)
     [True, True, False, True, True, False, False, True, True, False]
 
-    Is this example correct?
     >>> create_flat_mask([[0, 1], [1, 2, 3], [1]], 10)
     [True, True, False, True, True, True, True, False, False, False]
     """
@@ -404,17 +422,17 @@ def create_flat_mask(image_mask, len_image_container):
     [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value'),
      Input('image-container', 'children'),
-     Input('image-mask', 'data'),
+     Input('image-meta-data', 'data'),
     ]
 )
-def create_reactive_image_grid(n_row, n_col, image_list, image_mask):
+def create_reactive_image_grid(n_row, n_col, image_list, image_data):
 
     # Unpack the image_list if necessary
     if type(image_list) is dict:
         image_list = image_list['props']['children']
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_mask, len(image_list))
+    flat_mask = create_flat_mask(image_data['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     return create_image_grid(n_row, n_col, image_list)
@@ -432,11 +450,11 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_mask):
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'children'),
-         Input('image-mask', 'data'),
+         Input('image-meta-data', 'data'),
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_mask, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_data, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -456,7 +474,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         image_list = dict, containing a list of Img objects under ['props']['children']
-        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
+        image_data = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
@@ -475,7 +493,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         image_list = image_list['props']['children']
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_mask, len(image_list))
+    flat_mask = create_flat_mask(image_data['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
@@ -491,7 +509,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Reset the grid
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
-    if button_id in ['choose-grid-size', 'image-container', 'image-mask']:
+    if button_id in ['choose-grid-size', 'image-container', 'image-meta-data']:
         return resize_grid_pressed(image_list)
 
     # Toggle the state of this button (as it was pressed)
