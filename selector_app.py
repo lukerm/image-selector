@@ -345,8 +345,8 @@ def complete_image_group(n_group, n_rows, n_cols, image_data, *args):
     # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
     grouped_cell_positions = []
     grouped_cell_keeps = []
-    for i in range(ROWS_MAX):
-        for j in range(COLS_MAX):
+    for i in range(n_rows):
+        for j in range(n_cols):
             # Get the class list (str) for this cell
             my_class = args[j + i*COLS_MAX]
             # Position on the visible grid
