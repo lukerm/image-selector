@@ -64,36 +64,27 @@ ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_M
 
 ## Functions ##
 
-def create_image_grid(n_row, n_col, image_list, *args):
+def create_image_grid(n_row, n_col, image_list):
     """
     Create a grid of the same image with n_row rows and n_col columns
-
-    Supply the list of previous class names in the args to maintain them when creating a new grid
     """
 
     if len(image_list) < ROWS_MAX * COLS_MAX:
         image_list = image_list + [EMPTY_IMAGE]*(ROWS_MAX * COLS_MAX - len(image_list))
 
-    # If args are supplied and its length equal to number of ALL cells, they are assumed to specift the previous class
-    # value for that grid cell
-    fill_class = len(args) == ROWS_MAX * COLS_MAX
-
     grid = []
     for i in range(ROWS_MAX):
         row = []
         for j in range(COLS_MAX):
-            print(f'i: {i}; j: {j}')
-            print(f"rows: {n_row}; cols: {n_col}")
             hidden = (i >= n_row) or (j >= n_col)
-            my_class = args[j + i*COLS_MAX] if fill_class else None
-            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden, my_class))
+            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
         row = html.Tr(row)
         grid.append(row)
 
     return html.Div(html.Table(grid))
 
 
-def get_grid_element(image_list, x, y, n_x, n_y, hidden, previous_class):
+def get_grid_element(image_list, x, y, n_x, n_y, hidden):
 
     pad = 30/min(n_x, n_y)
 
@@ -105,16 +96,9 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden, previous_class):
         td_style = {'padding': pad}
         button_style = {'padding': 0}
 
-    # Determine the value of what class should be
-    if previous_class is not None and isinstance(previous_class, str):
-        my_class = previous_class
-    else:
-        my_class = 'grouped-off' if x or y else 'grouped-off focus'
-
-
     my_id = f'{x}-{y}'
     return html.Td(id='grid-td-' + my_id,
-                   className=my_class,
+                   className='grouped-off' if x or y else 'grouped-off focus',
                    children=html.Button(id='grid-button-' + my_id,
                                         children=image_list[y + x*n_y],
                                         style=button_style,
@@ -438,10 +422,9 @@ def create_flat_mask(image_mask, len_image_container):
      Input('choose-grid-size', 'value'),
      Input('image-container', 'children'),
      Input('image-meta-data', 'data'),
-    ],
-    ALL_TD_ID_STATES
+    ]
 )
-def create_reactive_image_grid(n_row, n_col, image_list, image_data, *args):
+def create_reactive_image_grid(n_row, n_col, image_list, image_data):
 
     # Unpack the image_list if necessary
     if type(image_list) is dict:
@@ -451,9 +434,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, *args):
     flat_mask = create_flat_mask(image_data['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
-    # TODO: could potentially supply args or not based on which Input fired (you might not want it when image-meta-data
-    #       triggers, i.e. when the group completes)
-    return create_image_grid(n_row, n_col, image_list, *args)
+    return create_image_grid(n_row, n_col, image_list)
 
 
 @app.callback(
