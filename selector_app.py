@@ -321,6 +321,48 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 
 @app.callback(
+    Output('image-mask', 'data'),
+    [
+     Input('complete-group', 'n_clicks'),
+     Input('choose-grid-size', 'value'),
+     Input('choose-grid-size', 'value'),
+    ],
+    [State('image-mask', 'data'),] + ALL_TD_ID_STATES
+)
+def complete_image_group(n_group, n_rows, n_cols, image_mask, *args):
+    """
+    Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
+    or the visible grid size is updated.
+
+    Args:
+        n_group = int, number of times the complete-group button is clicked (Input)
+        n_rows = int, current number of rows in the grid (Input: indicates resizing)
+        n_cols = int, current number of columns in the grid (Input: indicates resizing)
+        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed / grouped (State)
+
+    Returns:
+        updated version of the image mask (if any new group was legitimately completed)
+    """
+
+    # TODO: block the completion if keep / delete metadata is not fully specified
+
+    # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
+    grouped_grid_cells = []
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            my_class = args[j + i*COLS_MAX]
+            if 'grouped-on' in my_class:
+                # flattten again, taking into account the current visible grid
+                list_pos = j + i*n_rows
+                grouped_grid_cells.append(list_pos)
+
+    if len(grouped_grid_cells) > 0:
+        image_mask.append(grouped_grid_cells)
+
+    return image_mask
+
+
+@app.callback(
     Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value'),
