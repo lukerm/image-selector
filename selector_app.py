@@ -319,12 +319,11 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 @app.callback(
     Output('image-meta-data', 'data'),
-    [
-     Input('complete-group', 'n_clicks'),
-     Input('choose-grid-size', 'value'),
-     Input('choose-grid-size', 'value'),
-    ],
-    [State('image-meta-data', 'data'),] + ALL_TD_ID_STATES
+    [Input('complete-group', 'n_clicks')],
+    [State('choose-grid-size', 'value'),
+     State('choose-grid-size', 'value'),
+     State('image-meta-data', 'data'),
+    ] + ALL_TD_ID_STATES
 )
 def complete_image_group(n_group, n_rows, n_cols, image_data, *args):
     """
