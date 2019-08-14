@@ -305,7 +305,6 @@ def load_images(n, dropdown_value, dropdown_opts):
             static_image_path = copy_image(fname, image_dir, TMP_DIR)
 
             if static_image_path is not None:
-                print(static_image_path)
                 image_list.append(html.Img(src=static_image_path, style=img_style))
 
         while len(image_list) < ROWS_MAX*COLS_MAX:
