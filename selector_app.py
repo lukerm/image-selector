@@ -24,9 +24,11 @@ Note: the way this is coded means that the class ordering is always as follows: 
 
 import os
 import re
-
+import json
 import shutil
 import subprocess
+
+from datetime import date, datetime
 
 import dash
 import dash_core_components as dcc
@@ -45,6 +47,10 @@ app = dash.Dash(__name__)
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 static_image_route = '/'
 TMP_DIR = '/tmp'
+
+# Where to save metadata
+META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.pkl'
+META_DATA_FPATH = os.path.join(os.path.expanduser('~'), META_DATA_FNAME)
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
@@ -394,6 +400,9 @@ def complete_image_group(n_group, n_rows, n_cols, image_data, image_path, *args)
     if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
         image_data[image_path]['position'].append(grouped_cell_positions)
         image_data[image_path]['keep'].append(grouped_cell_keeps)
+
+        with open(META_DATA_FPATH, 'w') as j:
+            json.dump(image_data, j)
 
     return image_data
 
