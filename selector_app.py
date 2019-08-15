@@ -181,7 +181,7 @@ app.layout = html.Div(
         ),
         dcc.Dropdown(
             id='choose-image-path',
-            options=[{'label': 'NO IMAGE SELECTED', 'value': 0}],
+            options=[{'label': 'NO PATH SELECTED', 'value': 0}],
             value=0,
             style={'width': '40vw',}
         ),
