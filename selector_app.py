@@ -60,7 +60,7 @@ N_GRID = ROWS_MAX * COLS_MAX
 IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
 
 # Globals for the images
-img_fname = 'happyFrog.jpg' # Default image
+img_fname = 'job_done.jpg' # Default image
 img_path = static_image_route + img_fname
 img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
