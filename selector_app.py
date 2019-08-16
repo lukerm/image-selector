@@ -246,7 +246,7 @@ app.layout = html.Div(
         # images are stored. For each directory, there are two keys - 'position' and 'keep' - where each is a list of
         # lists of ints (representing image groups, in time order). This data structure can be handled by the Store
         # component (as it's serializable).
-        dcc.Store(id='image-meta-data', data={'__ignore': {'position': [], 'keep': []}}, storage_type='session'),
+        dcc.Store(id='image-meta-data', data={'__ignore': {'position': [], 'keep': [], 'filename': []}}, storage_type='session'),
         # For storing the image path WHEN THE confirm-load-directory IS CLICKED (the label in choose-image-path may
         # change without their being a new upload, so we need to record this value)
         dcc.Store(id='loaded-image-path', data=['__ignore'], storage_type='session'),
@@ -344,11 +344,12 @@ def load_images(n, dropdown_value, dropdown_opts):
     [
      State('choose-grid-size', 'value'),
      State('choose-grid-size', 'value'),
+     State('image-container', 'children'),
      State('image-meta-data', 'data'),
      State('loaded-image-path', 'data'),
     ] + ALL_TD_ID_STATES
 )
-def complete_image_group(n_group, n_rows, n_cols, image_data, image_path, *args):
+def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated.
@@ -357,21 +358,36 @@ def complete_image_group(n_group, n_rows, n_cols, image_data, image_path, *args)
         n_group = int, number of times the complete-group button is clicked (Input)
         n_rows = int, current number of rows in the grid (Input: indicates resizing)
         n_cols = int, current number of columns in the grid (Input: indicates resizing)
+        image_list = dict, containing a list of Img objects under ['props']['children']
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
+        image_path = str, the filepath where the images in image-container were loaded from
 
     Returns:
         updated version of the image mask (if any new group was legitimately completed)
     """
 
+    # Unpack the image_list if necessary
+    if type(image_list) is dict:
+        image_list = image_list['props']['children']
+
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
-        image_data[image_path] = {'position': [], 'keep': []}
+        image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
+
+    # The image_list (from image-container) contains ALL images in this directory, whereas as the list positions below
+    # will refer to the reduced masked list. In order to obtain consistent filenames, we need to apply the previous version
+    # of the mask to the image_list (version prior to this completion).
+    all_img_filenames = [el['props']['src'].split('/')[-1] for el in image_list]
+    prev_mask = create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
+    assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
+    unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
     # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
     grouped_cell_positions = []
     grouped_cell_keeps = []
+    grouped_filenames = []
     for i in range(n_rows):
         for j in range(n_cols):
             # Get the class list (str) for this cell
@@ -382,6 +398,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_data, image_path, *args)
             # Check if selected to be in the group, add position if on
             if 'grouped-on' in my_class:
                 grouped_cell_positions.append(list_pos)
+                grouped_filenames.append(unmasked_img_filenames[list_pos])
 
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
@@ -400,6 +417,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_data, image_path, *args)
     if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
         image_data[image_path]['position'].append(grouped_cell_positions)
         image_data[image_path]['keep'].append(grouped_cell_keeps)
+        image_data[image_path]['filename'].append(grouped_filenames)
 
         with open(META_DATA_FPATH, 'w') as j:
             json.dump(image_data, j)
@@ -466,7 +484,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
-        image_data[image_path] = {'position': [], 'keep': []}
+        image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
@@ -534,7 +552,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
-        image_data[image_path] = {'position': [], 'keep': []}
+        image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
