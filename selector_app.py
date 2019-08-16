@@ -49,7 +49,7 @@ static_image_route = '/'
 TMP_DIR = '/tmp'
 
 # Where to save metadata
-META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.pkl'
+META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
 META_DATA_FPATH = os.path.join(os.path.expanduser('~'), META_DATA_FNAME)
 
 # Define the maximal grid dimensions
