@@ -418,7 +418,8 @@ def load_images(n, dropdown_value, dropdown_opts):
 def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
-    or the visible grid size is updated.
+    or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
+    those files are backed up in the IMAGE_BACKUP_PATH).
 
     Args:
         n_group = int, number of times the complete-group button is clicked (Input)
@@ -454,17 +455,19 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
+    delete_filenames = []
     for i in range(n_rows):
         for j in range(n_cols):
             # Get the class list (str) for this cell
             my_class = args[j + i*COLS_MAX]
             # Position on the visible grid
             list_pos = j + i*n_rows
+            image_filename = unmasked_img_filenames[list_pos]
 
             # Check if selected to be in the group, add position if on
             if 'grouped-on' in my_class:
                 grouped_cell_positions.append(list_pos)
-                grouped_filenames.append(unmasked_img_filenames[list_pos])
+                grouped_filenames.append(image_filename)
 
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
@@ -472,6 +475,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 grouped_cell_keeps.append(True)
             elif 'delete' in my_class:
                 grouped_cell_keeps.append(False)
+                delete_filenames.append(image_filename)
             else:
                 pass
 
@@ -487,6 +491,10 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
 
         with open(META_DATA_FPATH, 'w') as j:
             json.dump(image_data, j)
+
+        # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+        for fname in delete_filenames:
+            os.remove(os.path.join(image_path, fname))
 
     return image_data
 
