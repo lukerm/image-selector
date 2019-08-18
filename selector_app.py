@@ -52,6 +52,8 @@ TMP_DIR = '/tmp'
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
 META_DATA_FPATH = os.path.join(os.path.expanduser('~'), META_DATA_FNAME)
 
+UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
+
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
 N_GRID = ROWS_MAX * COLS_MAX
@@ -190,7 +192,7 @@ app.layout = html.Div(
         ),
         dcc.Dropdown(
             id='choose-image-path',
-            options=[{'label': 'NO PATH SELECTED', 'value': 0}],
+            options=[{'label': UNSELECTED_PATH_TEXT, 'value': 0}],
             value=0,
             style={'width': '40vw',}
         ),
@@ -273,7 +275,7 @@ def update_image_path_selector(contents_list, filenames_list):
             else:
                 continue
 
-    return ([{'label': 'NO IMAGE SELECTED', 'value': 0}], 0)
+    return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
 
 
 def parse_image_upload(filename):
