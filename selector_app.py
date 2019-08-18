@@ -137,6 +137,9 @@ def copy_image(fname, src_path, dst_path):
             break
     # Only copy images
     if not is_image:
+        # Warning on non-directory filenames
+        if len(fname.split('.')) > 1:
+            print(f"WARNING: ignoring non-image file {fname}")
         return
 
     # Copy the file to the temporary location (that can be served)
