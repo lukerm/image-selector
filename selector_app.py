@@ -48,9 +48,12 @@ image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img
 static_image_route = '/'
 TMP_DIR = '/tmp'
 
-# Where to save metadata
+# Where to save metadata and backup images
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
-META_DATA_FPATH = os.path.join(os.path.expanduser('~'), META_DATA_FNAME)
+IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
+os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
+os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
+META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
 
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
@@ -350,22 +353,52 @@ def find_image_dir_on_system(img_fname):
     ]
 )
 def load_images(n, dropdown_value, dropdown_opts):
+    """
+    This callback triggers when "Load directory" (id: 'confirm-load-directory') is pressed. It causes three actions:
+        1) The image is copied to TMP_DIR, from where is can be served
+        2) If in use, it is also copied to a subfolder of IMAGE_BACKUP_PATH, for data storage
+        3) The image is loaded into memory in the image-container Store
+
+    These operations are only applied to image-like files (not videos), as defined by the extensions in IMAGE_TYPES
+
+    Note: It fails to load if it finds that the backup folder already exists, as this implies the folder was worked before
+    """
+
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
     image_list = []
     try:
-        for fname in sorted(os.listdir(image_dir)):
-            static_image_path = copy_image(fname, image_dir, TMP_DIR)
 
+        # Needed copy to a corresponding subfolder in the IMAGE_BACKUP_PATH
+        rel_path, _ = remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
+        backup_path = os.path.join(IMAGE_BACKUP_PATH, rel_path)
+        # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
+        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
+            os.makedirs(backup_path, exist_ok=False)
+
+        for fname in sorted(os.listdir(image_dir)):
+
+            # Copy the image to various location, but only if it is an image!
+
+            # Copy to the TMP_DIR from where the image can be served
+            static_image_path = copy_image(fname, image_dir, TMP_DIR)
             if static_image_path is not None:
                 image_list.append(html.Img(src=static_image_path, style=img_style))
 
+            # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
+            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path))
+
+        # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(EMPTY_IMAGE)
 
     except FileNotFoundError:
         return html.Tr([]), ['__ignore']
+
+    except FileExistsError:
+        print(f'This folder has been worked on previously: {image_dir}')
+        raise
 
     # Return a 2-tuple: 0) is a wrapped list of Imgs; 1) is a single-entry list containing the loaded path
     return html.Tr(image_list), [image_dir]
