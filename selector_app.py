@@ -39,6 +39,9 @@ from dash.dependencies import Input, Output, State
 
 import flask
 
+import pandas as pd
+from sqlalchemy import create_engine
+
 
 ## Constants ##
 
@@ -56,6 +59,11 @@ IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplic
 os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
 os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
 META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
+
+# Database details
+DATABASE_NAME = 'deduplicate'
+DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
+DATABASE_TABLE = 'duplicates'
 
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
@@ -491,8 +499,12 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data[image_path]['keep'].append(grouped_cell_keeps)
         image_data[image_path]['filename'].append(grouped_filenames)
 
+        # Save all meta data in JSON format on disk
         with open(META_DATA_FPATH, 'w') as j:
             json.dump(image_data, j)
+
+        # Save data for the new group in the specified database
+        send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
 
         # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
         for fname in delete_filenames:
@@ -540,6 +552,44 @@ def create_flat_mask(image_mask, len_image_container):
                     true_mask[i] = True # mask it
 
     return true_mask
+
+
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
+    """
+    Send data pertaining to a completed group of images to the database.
+
+    Args:
+        database_uri = str, of the form accepted by sqlalchemy to create a database connection
+        database_table = str, name of the database table
+        image_path = str, the image path where the images originated from
+        filename_list = list, of str, image filenames within the group
+        keep_list = list, of bool, whether to keep those images or not
+
+    Returns: None
+
+    Raises: if filename_list and keep_list do not have the same length.
+    """
+
+    N = len(keep_list)
+    assert N == len(filename_list)
+
+    engine = create_engine(database_uri)
+    cnxn = engine.connect()
+
+    # The group's ID is made unique by using the timestamp (up to seconds)
+    modified_time = datetime.now()
+    group_id = int(datetime.timestamp(modified_time))
+
+    df_to_send = pd.DataFrame({
+        'group_id': [group_id] * N,
+        'filename': filename_list,
+        'directory_name': [image_path] * N,
+        'keep': keep_list,
+        'modified_time': [modified_time] * N,
+    })
+
+    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
+    cnxn.close()
 
 
 @app.callback(
