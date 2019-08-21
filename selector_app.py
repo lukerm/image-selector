@@ -351,6 +351,27 @@ def find_image_dir_on_system(img_fname):
     return path_options
 
 
+def get_backup_path(original_image_dir, intended_backup_root):
+    """
+    Calculate the location where all the images will be backed up to.
+
+    Args:
+        original_image_dir = str, filepath of where the original images are stored (no filename)
+        intended_backup_root = str, the filepath to the root folder where all image files will be backed up to
+
+    Returns:
+        backup_path = str, full filepath the specific location (within intended_backup_root) these images will be
+                           copied to (no filename)
+        relative_path = str, the relative filepath under intended_backup_root where the images will be backed up to
+                             (no filename)
+    """
+
+    relative_path, _ = remove_common_beginning(original_image_dir, IMAGE_BACKUP_PATH)
+    backup_path = os.path.join(IMAGE_BACKUP_PATH, relative_path)
+
+    return backup_path, relative_path
+
+
 @app.callback(
     [
      Output('image-container', 'children'),
@@ -380,9 +401,9 @@ def load_images(n, dropdown_value, dropdown_opts):
     image_list = []
     try:
 
-        # Needed copy to a corresponding subfolder in the IMAGE_BACKUP_PATH
-        rel_path, _ = remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
-        backup_path = os.path.join(IMAGE_BACKUP_PATH, rel_path)
+        # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
+        backup_path, relative_path = get_backup_path(image_dir, IMAGE_BACKUP_PATH)
+
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
         if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
             os.makedirs(backup_path, exist_ok=False)
@@ -397,7 +418,7 @@ def load_images(n, dropdown_value, dropdown_opts):
                 image_list.append(html.Img(src=static_image_path, style=img_style))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path))
+            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path))
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
@@ -570,7 +591,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images originated from
+        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
         filename_list = list, of str, image filenames within the group
         keep_list = list, of bool, whether to keep those images or not
 
@@ -587,12 +608,15 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
 
     # The group's ID is made unique by using the timestamp (up to milliseconds)
     modified_time = datetime.now()
-    group_id = int(datetime.timestamp(modified_time*10))
+    group_id = int(datetime.timestamp(modified_time)*10)
+
+    # Calculate the path where the image is backed up to (i.e. raw data)
+    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
         'filename': filename_list,
-        'directory_name': [image_path] * N,
+        'directory_name': [img_backup_path] * N,
         'keep': keep_list,
         'modified_time': [modified_time] * N,
     })
