@@ -223,3 +223,31 @@ def create_flat_mask(image_mask, len_image_container):
                     true_mask[i] = True # mask it
 
     return true_mask
+
+
+def remove_common_beginning(str1, str2):
+    """
+    Strip out the common part at the start of both str1 and str2
+
+    >>> remove_common_beginning('chalk', 'cheese')
+    ('alk', 'eese')
+
+    >>> remove_common_beginning('/common/path/to/a/b/c', '/common/path/to/d/e/f/')
+    ('a/b/c', 'd/e/f/')
+
+    Known failure, should return: ('same', '')
+    >>> remove_common_beginning('samesame', 'same')
+    ('', '')
+    """
+
+    common = ''
+    for i, s in enumerate(str1):
+        if str2.startswith(str1[:i+1]):
+            common = str1[:i+1]
+        else:
+            break
+
+    if len(common) > 0:
+        return str1.split(common)[1], str2.split(common)[1]
+    else:
+        return str1, str2
