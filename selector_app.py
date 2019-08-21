@@ -38,6 +38,7 @@ from dash.dependencies import Input, Output, State
 import flask
 
 import utils
+import config
 
 
 ## Constants ##
@@ -47,7 +48,7 @@ app = dash.Dash(__name__)
 
 # Assumes that images are stored in the img/ directory for now
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
-static_image_route = '/'
+STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 TMP_DIR = '/tmp'
 
 # Where to save metadata and backup images
@@ -73,7 +74,7 @@ IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
 
 # Globals for the images
 img_fname = 'job_done.jpg' # Default image
-img_path = static_image_route + img_fname
+img_path = STATIC_IMAGE_ROUTE + img_fname
 img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
 
@@ -163,7 +164,7 @@ def remove_common_beginning(str1, str2):
 
 
 # List of image objects - pre-load here to avoid re-loading on every grid re-sizing
-images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
+images = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(image_directory))]
 IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
 IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
 EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
@@ -753,7 +754,7 @@ def class_turn_off_keep_delete(class_list):
     return [c for c in class_list if c not in ['keep', 'delete']]
 
 
-@app.server.route('{}<image_path>'.format(static_image_route))
+@app.server.route('{}<image_path>'.format(STATIC_IMAGE_ROUTE))
 def serve_image(image_path):
     """
     Allows an image to be served from the given image_path

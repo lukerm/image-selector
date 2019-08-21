@@ -7,13 +7,17 @@ import os
 import shutil
 import subprocess
 
-from datetime import date, datetime
+from datetime import datetime
 from sqlalchemy import create_engine
 
 import pandas as pd
 
+import config
 
-static_image_route = '/'
+
+## Constants ##
+
+STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 
 
 
@@ -52,7 +56,7 @@ def copy_image(fname, src_path, dst_path, image_types):
     # Copy the file to the temporary location (that can be served)
     shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
     # Append the Img object with the static path
-    static_image_path = os.path.join(static_image_route, fname)
+    static_image_path = os.path.join(STATIC_IMAGE_ROUTE, fname)
 
     return static_image_path
 
