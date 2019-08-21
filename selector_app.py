@@ -27,7 +27,6 @@ Note: assumes that images originate from ~/Pictures directory
 import os
 import re
 import json
-import subprocess
 
 from datetime import date, datetime
 
@@ -37,9 +36,6 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 import flask
-
-import pandas as pd
-from sqlalchemy import create_engine
 
 import utils
 
@@ -280,45 +276,13 @@ app.layout = html.Div(
 def update_image_path_selector(contents_list, filenames_list):
     if contents_list is not None:
         for fname in filenames_list:
-            options_list = parse_image_upload(fname)
+            options_list = utils.parse_image_upload(fname, IMAGE_TYPES)
             if len(options_list) > 0:
                 return (options_list, 0)
             else:
                 continue
 
     return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
-
-
-def parse_image_upload(filename):
-    """
-    Given an image filename, create a list of options for the 'options' for the Dropdown that chooses
-    which path the image should be loaded from.
-    """
-    is_image = False
-    for img_type in IMAGE_TYPES:
-        if img_type in filename:
-            is_image = True
-            break
-
-    if is_image:
-        path_options = find_image_dir_on_system(filename)
-        if len(path_options) > 0:
-            return [{'label': path, 'value': i} for i, path in enumerate(path_options[::-1])]
-        else:
-            return []
-    else:
-        return []
-
-
-def find_image_dir_on_system(img_fname):
-    """
-    Find the location(s) of the given filename on the file system.
-
-    Returns: list of filepaths (excluding filename) where the file can be found.
-    """
-    path_options = subprocess.check_output(['find', os.path.expanduser('~'), '-name', img_fname]).decode()
-    path_options = ['/'.join(f.split('/')[:-1]) for f in path_options.split('\n') if len(f) > 0]
-    return path_options
 
 
 @app.callback(
@@ -429,7 +393,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     # will refer to the reduced masked list. In order to obtain consistent filenames, we need to apply the previous version
     # of the mask to the image_list (version prior to this completion).
     all_img_filenames = [el['props']['src'].split('/')[-1] for el in image_list]
-    prev_mask = create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
+    prev_mask = utils.create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
@@ -483,92 +447,13 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
             json.dump(image_data, j)
 
         # Save data for the new group in the specified database
-        send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+        utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
 
         # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
         for fname in delete_filenames:
             os.remove(os.path.join(image_path, fname))
 
     return image_data
-
-
-def create_flat_mask(image_mask, len_image_container):
-    """
-    Unpack the image mask into a flat list which states which images from the image container should be masked (as they
-    have already been completed by the user).
-
-    Note: each element (list) in the image mask represents a group of images. The int values in that group state the grid
-          positions (0..n_rows*n_cols) of those images at the time they were grouped, not taking into account previously
-          grouped images. Hence, the image mask must unpacked in order, from left (past) to right (present), in order to
-          calculate the true mask on the image container.
-
-    Args:
-        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
-                     Note: this is stored in the 'position' key in the image-meta-data
-        len_image_container = int, length of the image container (all images) for the current working directory
-
-    Returns:
-        list, of bool, stating which images should not be shown if they would otherwise be shown in the visible grid
-
-
-    >>> create_flat_mask([[0, 1], [0, 1, 2]], 9)
-    [True, True, True, True, True, False, False, False, False]
-
-    >>> create_flat_mask([[7, 8], [0, 1, 3, 4]], 10)
-    [True, True, False, True, True, False, False, True, True, False]
-
-    >>> create_flat_mask([[0, 1], [1, 2, 3], [1]], 10)
-    [True, True, False, True, True, True, True, False, False, False]
-    """
-
-    true_mask = [False]*len_image_container
-    for group in image_mask:
-        available_count = -1
-        for i, b in enumerate(true_mask):
-            if not b:
-                available_count += 1
-                if available_count in group:
-                    true_mask[i] = True # mask it
-
-    return true_mask
-
-
-def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
-    """
-    Send data pertaining to a completed group of images to the database.
-
-    Args:
-        database_uri = str, of the form accepted by sqlalchemy to create a database connection
-        database_table = str, name of the database table
-        image_path = str, the image path where the images originated from
-        filename_list = list, of str, image filenames within the group
-        keep_list = list, of bool, whether to keep those images or not
-
-    Returns: None
-
-    Raises: if filename_list and keep_list do not have the same length.
-    """
-
-    N = len(keep_list)
-    assert N == len(filename_list)
-
-    engine = create_engine(database_uri)
-    cnxn = engine.connect()
-
-    # The group's ID is made unique by using the timestamp (up to milliseconds)
-    modified_time = datetime.now()
-    group_id = int(datetime.timestamp(modified_time*10))
-
-    df_to_send = pd.DataFrame({
-        'group_id': [group_id] * N,
-        'filename': filename_list,
-        'directory_name': [image_path] * N,
-        'keep': keep_list,
-        'modified_time': [modified_time] * N,
-    })
-
-    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
-    cnxn.close()
 
 
 @app.callback(
@@ -592,7 +477,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
         image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
+    flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     return create_image_grid(n_row, n_col, image_list)
@@ -660,7 +545,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
+    flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)

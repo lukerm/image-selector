@@ -5,6 +5,12 @@
 
 import os
 import shutil
+import subprocess
+
+from datetime import date, datetime
+from sqlalchemy import create_engine
+
+import pandas as pd
 
 
 static_image_route = '/'
@@ -24,6 +30,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         fname = str, query filename (no path)
         src_path = str, directory of where to copy from (no filename)
         dst_path = str, directory of where to copy to (no filename)
+        image_types = list, of str, valid extensions of image files (e.g. .jpg)
 
     Returns: str, full filepath that the server is expecting
              or None, if not an valid image type (see IMAGE_TYPES)
@@ -48,3 +55,122 @@ def copy_image(fname, src_path, dst_path, image_types):
     static_image_path = os.path.join(static_image_route, fname)
 
     return static_image_path
+
+
+def parse_image_upload(filename, image_types):
+    """
+    Given an image filename, create a list of options for the 'options' for the Dropdown that chooses
+    which path the image should be loaded from.
+    """
+    is_image = False
+    for img_type in image_types:
+        if img_type in filename:
+            is_image = True
+            break
+
+    if is_image:
+        path_options = find_image_dir_on_system(filename)
+        if len(path_options) > 0:
+            return [{'label': path, 'value': i} for i, path in enumerate(path_options[::-1])]
+        else:
+            return []
+    else:
+        return []
+
+
+def find_image_dir_on_system(img_fname):
+    """
+    Find the location(s) of the given filename on the file system.
+
+    Returns: list of filepaths (excluding filename) where the file can be found.
+    """
+    path_options = subprocess.check_output(['find', os.path.expanduser('~'), '-name', img_fname]).decode()
+    path_options = ['/'.join(f.split('/')[:-1]) for f in path_options.split('\n') if len(f) > 0]
+    return path_options
+
+
+# Database #
+
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
+    """
+    Send data pertaining to a completed group of images to the database.
+
+    Args:
+        database_uri = str, of the form accepted by sqlalchemy to create a database connection
+        database_table = str, name of the database table
+        image_path = str, the image path where the images originated from
+        filename_list = list, of str, image filenames within the group
+        keep_list = list, of bool, whether to keep those images or not
+
+    Returns: None
+
+    Raises: if filename_list and keep_list do not have the same length.
+    """
+
+    N = len(keep_list)
+    assert N == len(filename_list)
+
+    engine = create_engine(database_uri)
+    cnxn = engine.connect()
+
+    # The group's ID is made unique by using the timestamp (up to milliseconds)
+    modified_time = datetime.now()
+    group_id = int(datetime.timestamp(modified_time*10))
+
+    df_to_send = pd.DataFrame({
+        'group_id': [group_id] * N,
+        'filename': filename_list,
+        'directory_name': [image_path] * N,
+        'keep': keep_list,
+        'modified_time': [modified_time] * N,
+    })
+
+    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
+    cnxn.close()
+
+
+
+
+
+
+# Misc #
+
+def create_flat_mask(image_mask, len_image_container):
+    """
+    Unpack the image mask into a flat list which states which images from the image container should be masked (as they
+    have already been completed by the user).
+
+    Note: each element (list) in the image mask represents a group of images. The int values in that group state the grid
+          positions (0..n_rows*n_cols) of those images at the time they were grouped, not taking into account previously
+          grouped images. Hence, the image mask must unpacked in order, from left (past) to right (present), in order to
+          calculate the true mask on the image container.
+
+    Args:
+        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
+                     Note: this is stored in the 'position' key in the image-meta-data
+        len_image_container = int, length of the image container (all images) for the current working directory
+
+    Returns:
+        list, of bool, stating which images should not be shown if they would otherwise be shown in the visible grid
+
+
+    >>> create_flat_mask([[0, 1], [0, 1, 2]], 9)
+    [True, True, True, True, True, False, False, False, False]
+
+    >>> create_flat_mask([[7, 8], [0, 1, 3, 4]], 10)
+    [True, True, False, True, True, False, False, True, True, False]
+
+    >>> create_flat_mask([[0, 1], [1, 2, 3], [1]], 10)
+    [True, True, False, True, True, True, True, False, False, False]
+    """
+
+    true_mask = [False]*len_image_container
+    for group in image_mask:
+        available_count = -1
+        for i, b in enumerate(true_mask):
+            if not b:
+                available_count += 1
+                if available_count in group:
+                    true_mask[i] = True # mask it
+
+    return true_mask
