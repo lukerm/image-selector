@@ -27,7 +27,6 @@ Note: assumes that images originate from ~/Pictures directory
 import os
 import re
 import json
-import shutil
 import subprocess
 
 from datetime import date, datetime
@@ -41,6 +40,8 @@ import flask
 
 import pandas as pd
 from sqlalchemy import create_engine
+
+import utils
 
 
 ## Constants ##
@@ -131,38 +132,7 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def copy_image(fname, src_path, dst_path):
-    """
-    Perform a copy of the file if it is an image. It will be copied to dst_path.
 
-    Args:
-        fname = str, query filename (no path)
-        src_path = str, directory of where to copy from (no filename)
-        dst_path = str, directory of where to copy to (no filename)
-
-    Returns: str, full filepath that the server is expecting
-             or None, if not an valid image type (see IMAGE_TYPES)
-    """
-
-    # Check if it's a valid image (by extension)
-    is_image = False
-    for img_type in IMAGE_TYPES:
-        if img_type in fname:
-            is_image = True
-            break
-    # Only copy images
-    if not is_image:
-        # Warning on non-directory filenames
-        if len(fname.split('.')) > 1:
-            print(f"WARNING: ignoring non-image file {fname}")
-        return
-
-    # Copy the file to the temporary location (that can be served)
-    shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
-    # Append the Img object with the static path
-    static_image_path = os.path.join(static_image_route, fname)
-
-    return static_image_path
 
 
 def remove_common_beginning(str1, str2):
@@ -204,7 +174,7 @@ EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
 
 # Copy default images to the TMP_DIR so they're available when the program starts
 for fname in sorted(os.listdir(image_directory)):
-    static_image_path = copy_image(fname, image_directory, TMP_DIR)
+    static_image_path = utils.copy_image(fname, image_directory, TMP_DIR, IMAGE_TYPES)
 
 
 ## Layout ##
@@ -392,12 +362,12 @@ def load_images(n, dropdown_value, dropdown_opts):
             # Copy the image to various location, but only if it is an image!
 
             # Copy to the TMP_DIR from where the image can be served
-            static_image_path = copy_image(fname, image_dir, TMP_DIR)
+            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
                 image_list.append(html.Img(src=static_image_path, style=img_style))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path))
+            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path), IMAGE_TYPES)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
