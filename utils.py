@@ -12,13 +12,17 @@ from sqlalchemy import create_engine
 
 import pandas as pd
 
+import dash_html_components as html
+
 import config
 
 
 ## Constants ##
 
 STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
-
+ROWS_MAX = config.ROWS_MAX
+COLS_MAX = config.COLS_MAX
+N_GRID = config.N_GRID
 
 
 ## Functions ##
@@ -133,8 +137,49 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     cnxn.close()
 
 
+# Grid tools #
+
+def create_image_grid(n_row, n_col, image_list, empty_image):
+    """
+    Create a grid of the same image with n_row rows and n_col columns
+    """
+
+    if len(image_list) < ROWS_MAX * COLS_MAX:
+        image_list = image_list + [empty_image]*(ROWS_MAX * COLS_MAX - len(image_list))
+
+    grid = []
+    for i in range(ROWS_MAX):
+        row = []
+        for j in range(COLS_MAX):
+            hidden = (i >= n_row) or (j >= n_col)
+            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
+        row = html.Tr(row)
+        grid.append(row)
+
+    return html.Div(html.Table(grid))
 
 
+def get_grid_element(image_list, x, y, n_x, n_y, hidden):
+
+    pad = 30/min(n_x, n_y)
+
+    # Set the display to none if this grid cell is hidden
+    if hidden:
+        td_style = {'padding': 0, 'display': 'none',}
+        button_style = {'padding': 0, 'display': 'none',}
+    else:
+        td_style = {'padding': pad}
+        button_style = {'padding': 0}
+
+    my_id = f'{x}-{y}'
+    return html.Td(id='grid-td-' + my_id,
+                   className='grouped-off' if x or y else 'grouped-off focus',
+                   children=html.Button(id='grid-button-' + my_id,
+                                        children=image_list[y + x*n_y],
+                                        style=button_style,
+                                        ),
+                    style=td_style,
+                   )
 
 
 # Misc #

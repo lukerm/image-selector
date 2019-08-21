@@ -43,8 +43,6 @@ import config
 
 ## Constants ##
 
-app = dash.Dash(__name__)
-
 # Redefine some global variables
 STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 IMAGE_TYPES = config.IMAGE_TYPES
@@ -79,57 +77,17 @@ img_fname = 'job_done.jpg' # Default image
 img_path = STATIC_IMAGE_ROUTE + img_fname
 img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
+# List of image objects - pre-load here to avoid re-loading on every grid re-sizing
+images = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(image_directory))]
+IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
+IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
+EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
+
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
 ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-
-
-## Functions ##
-
-def create_image_grid(n_row, n_col, image_list):
-    """
-    Create a grid of the same image with n_row rows and n_col columns
-    """
-
-    if len(image_list) < ROWS_MAX * COLS_MAX:
-        image_list = image_list + [EMPTY_IMAGE]*(ROWS_MAX * COLS_MAX - len(image_list))
-
-    grid = []
-    for i in range(ROWS_MAX):
-        row = []
-        for j in range(COLS_MAX):
-            hidden = (i >= n_row) or (j >= n_col)
-            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
-        row = html.Tr(row)
-        grid.append(row)
-
-    return html.Div(html.Table(grid))
-
-
-def get_grid_element(image_list, x, y, n_x, n_y, hidden):
-
-    pad = 30/min(n_x, n_y)
-
-    # Set the display to none if this grid cell is hidden
-    if hidden:
-        td_style = {'padding': 0, 'display': 'none',}
-        button_style = {'padding': 0, 'display': 'none',}
-    else:
-        td_style = {'padding': pad}
-        button_style = {'padding': 0}
-
-    my_id = f'{x}-{y}'
-    return html.Td(id='grid-td-' + my_id,
-                   className='grouped-off' if x or y else 'grouped-off focus',
-                   children=html.Button(id='grid-button-' + my_id,
-                                        children=image_list[y + x*n_y],
-                                        style=button_style,
-                                        ),
-                    style=td_style,
-                   )
-
 
 
 
@@ -164,19 +122,14 @@ def remove_common_beginning(str1, str2):
 
 ## Main ##
 
-
-# List of image objects - pre-load here to avoid re-loading on every grid re-sizing
-images = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(image_directory))]
-IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
-IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
-EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
-
 # Copy default images to the TMP_DIR so they're available when the program starts
 for fname in sorted(os.listdir(image_directory)):
     static_image_path = utils.copy_image(fname, image_directory, TMP_DIR, IMAGE_TYPES)
 
 
 ## Layout ##
+
+app = dash.Dash(__name__)
 
 # App's layout
 app.layout = html.Div(
@@ -243,7 +196,7 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-image-grid',
-                        children=create_image_grid(2, 2, IMAGE_LIST),
+                        children=utils.create_image_grid(2, 2, IMAGE_LIST, EMPTY_IMAGE),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
                     html.Td([
@@ -318,7 +271,7 @@ def load_images(n, dropdown_value, dropdown_opts):
     try:
 
         # Needed copy to a corresponding subfolder in the IMAGE_BACKUP_PATH
-        rel_path, _ = remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
+        rel_path, _ = utils.remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
         backup_path = os.path.join(IMAGE_BACKUP_PATH, rel_path)
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
         if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
@@ -483,7 +436,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
-    return create_image_grid(n_row, n_col, image_list)
+    return utils.create_image_grid(n_row, n_col, image_list, EMPTY_IMAGE)
 
 
 @app.callback(
