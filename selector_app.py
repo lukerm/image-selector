@@ -429,7 +429,8 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
-    those files are backed up in the IMAGE_BACKUP_PATH).
+    those files are backed up in the IMAGE_BACKUP_PATH) and send the meta data to the specified database: see
+    DATABASE_NAME and DATABASE_TABLE.
 
     Args:
         n_group = int, number of times the complete-group button is clicked (Input)
@@ -439,6 +440,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
         image_path = str, the filepath where the images in image-container were loaded from
+        *args = positional arguments are States (given by the grid-Tds for knowing the class names)
 
     Returns:
         updated version of the image mask (if any new group was legitimately completed)
