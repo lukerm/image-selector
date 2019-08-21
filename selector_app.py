@@ -14,6 +14,8 @@ have it) or by moving the current highlighted cell around with the directional b
 
 Note: the way this is coded means that the class ordering is always as follows: 'grouped-o[n|ff][ focus]'.
         This is not ideal and maybe fixed in the future so that the order does not matter.
+
+Note: assumes that images originate from ~/Pictures directory
 """
 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
@@ -37,6 +39,9 @@ from dash.dependencies import Input, Output, State
 
 import flask
 
+import pandas as pd
+from sqlalchemy import create_engine
+
 
 ## Constants ##
 
@@ -48,9 +53,19 @@ image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img
 static_image_route = '/'
 TMP_DIR = '/tmp'
 
-# Where to save metadata
+# Where to save metadata and backup images
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
-META_DATA_FPATH = os.path.join(os.path.expanduser('~'), META_DATA_FNAME)
+IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
+os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
+os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
+META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
+
+# Database details
+DATABASE_NAME = 'deduplicate'
+DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
+DATABASE_TABLE = 'duplicates'
+
+UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
 # Define the maximal grid dimensions
 ROWS_MAX, COLS_MAX = 7, 7
@@ -137,6 +152,9 @@ def copy_image(fname, src_path, dst_path):
             break
     # Only copy images
     if not is_image:
+        # Warning on non-directory filenames
+        if len(fname.split('.')) > 1:
+            print(f"WARNING: ignoring non-image file {fname}")
         return
 
     # Copy the file to the temporary location (that can be served)
@@ -145,6 +163,34 @@ def copy_image(fname, src_path, dst_path):
     static_image_path = os.path.join(static_image_route, fname)
 
     return static_image_path
+
+
+def remove_common_beginning(str1, str2):
+    """
+    Strip out the common part at the start of both str1 and str2
+
+    >>> remove_common_beginning('chalk', 'cheese')
+    ('alk', 'eese')
+
+    >>> remove_common_beginning('/common/path/to/a/b/c', '/common/path/to/d/e/f/')
+    ('a/b/c', 'd/e/f/')
+
+    Known failure, should return: ('same', '')
+    >>> remove_common_beginning('samesame', 'same')
+    ('', '')
+    """
+
+    common = ''
+    for i, s in enumerate(str1):
+        if str2.startswith(str1[:i+1]):
+            common = str1[:i+1]
+        else:
+            break
+
+    if len(common) > 0:
+        return str1.split(common)[1], str2.split(common)[1]
+    else:
+        return str1, str2
 
 
 ## Main ##
@@ -187,7 +233,7 @@ app.layout = html.Div(
         ),
         dcc.Dropdown(
             id='choose-image-path',
-            options=[{'label': 'NO PATH SELECTED', 'value': 0}],
+            options=[{'label': UNSELECTED_PATH_TEXT, 'value': 0}],
             value=0,
             style={'width': '40vw',}
         ),
@@ -270,7 +316,7 @@ def update_image_path_selector(contents_list, filenames_list):
             else:
                 continue
 
-    return ([{'label': 'NO IMAGE SELECTED', 'value': 0}], 0)
+    return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
 
 
 def parse_image_upload(filename):
@@ -287,7 +333,7 @@ def parse_image_upload(filename):
     if is_image:
         path_options = find_image_dir_on_system(filename)
         if len(path_options) > 0:
-            return [{'label': path, 'value': i} for i, path in enumerate(path_options)]
+            return [{'label': path, 'value': i} for i, path in enumerate(path_options[::-1])]
         else:
             return []
     else:
@@ -317,22 +363,52 @@ def find_image_dir_on_system(img_fname):
     ]
 )
 def load_images(n, dropdown_value, dropdown_opts):
+    """
+    This callback triggers when "Load directory" (id: 'confirm-load-directory') is pressed. It causes three actions:
+        1) The image is copied to TMP_DIR, from where is can be served
+        2) If in use, it is also copied to a subfolder of IMAGE_BACKUP_PATH, for data storage
+        3) The image is loaded into memory in the image-container Store
+
+    These operations are only applied to image-like files (not videos), as defined by the extensions in IMAGE_TYPES
+
+    Note: It fails to load if it finds that the backup folder already exists, as this implies the folder was worked before
+    """
+
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
     image_list = []
     try:
-        for fname in sorted(os.listdir(image_dir)):
-            static_image_path = copy_image(fname, image_dir, TMP_DIR)
 
+        # Needed copy to a corresponding subfolder in the IMAGE_BACKUP_PATH
+        rel_path, _ = remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
+        backup_path = os.path.join(IMAGE_BACKUP_PATH, rel_path)
+        # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
+        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
+            os.makedirs(backup_path, exist_ok=False)
+
+        for fname in sorted(os.listdir(image_dir)):
+
+            # Copy the image to various location, but only if it is an image!
+
+            # Copy to the TMP_DIR from where the image can be served
+            static_image_path = copy_image(fname, image_dir, TMP_DIR)
             if static_image_path is not None:
                 image_list.append(html.Img(src=static_image_path, style=img_style))
 
+            # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
+            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path))
+
+        # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(EMPTY_IMAGE)
 
     except FileNotFoundError:
         return html.Tr([]), ['__ignore']
+
+    except FileExistsError:
+        print(f'This folder has been worked on previously: {image_dir}')
+        raise
 
     # Return a 2-tuple: 0) is a wrapped list of Imgs; 1) is a single-entry list containing the loaded path
     return html.Tr(image_list), [image_dir]
@@ -352,7 +428,9 @@ def load_images(n, dropdown_value, dropdown_opts):
 def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
-    or the visible grid size is updated.
+    or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
+    those files are backed up in the IMAGE_BACKUP_PATH) and send the meta data to the specified database: see
+    DATABASE_NAME and DATABASE_TABLE.
 
     Args:
         n_group = int, number of times the complete-group button is clicked (Input)
@@ -362,6 +440,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
         image_path = str, the filepath where the images in image-container were loaded from
+        *args = positional arguments are States (given by the grid-Tds for knowing the class names)
 
     Returns:
         updated version of the image mask (if any new group was legitimately completed)
@@ -384,21 +463,30 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
-    # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
+    # Extract the image group and their meta data (filename and keep / delete)
+    # Note: Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size
+    #       (ROWS_MAX * COLS_MAX)
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
+    delete_filenames = []
     for i in range(n_rows):
         for j in range(n_cols):
             # Get the class list (str) for this cell
             my_class = args[j + i*COLS_MAX]
-            # Position on the visible grid
+            # Position on the visible grid (mapped to list index)
             list_pos = j + i*n_rows
+            # As the number of unmasked images shrinks (when the user completes a group, those images disappear), the
+            # list position will eventually run out of the valid indices. As there's no valid metadata in this region
+            # we skip over it
+            if list_pos >= len(unmasked_img_filenames):
+                continue
+            image_filename = unmasked_img_filenames[list_pos]
 
             # Check if selected to be in the group, add position if on
             if 'grouped-on' in my_class:
                 grouped_cell_positions.append(list_pos)
-                grouped_filenames.append(unmasked_img_filenames[list_pos])
+                grouped_filenames.append(image_filename)
 
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
@@ -406,6 +494,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 grouped_cell_keeps.append(True)
             elif 'delete' in my_class:
                 grouped_cell_keeps.append(False)
+                delete_filenames.append(image_filename)
             else:
                 pass
 
@@ -419,8 +508,16 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data[image_path]['keep'].append(grouped_cell_keeps)
         image_data[image_path]['filename'].append(grouped_filenames)
 
+        # Save all meta data in JSON format on disk
         with open(META_DATA_FPATH, 'w') as j:
             json.dump(image_data, j)
+
+        # Save data for the new group in the specified database
+        send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+
+        # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+        for fname in delete_filenames:
+            os.remove(os.path.join(image_path, fname))
 
     return image_data
 
@@ -464,6 +561,44 @@ def create_flat_mask(image_mask, len_image_container):
                     true_mask[i] = True # mask it
 
     return true_mask
+
+
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
+    """
+    Send data pertaining to a completed group of images to the database.
+
+    Args:
+        database_uri = str, of the form accepted by sqlalchemy to create a database connection
+        database_table = str, name of the database table
+        image_path = str, the image path where the images originated from
+        filename_list = list, of str, image filenames within the group
+        keep_list = list, of bool, whether to keep those images or not
+
+    Returns: None
+
+    Raises: if filename_list and keep_list do not have the same length.
+    """
+
+    N = len(keep_list)
+    assert N == len(filename_list)
+
+    engine = create_engine(database_uri)
+    cnxn = engine.connect()
+
+    # The group's ID is made unique by using the timestamp (up to milliseconds)
+    modified_time = datetime.now()
+    group_id = int(datetime.timestamp(modified_time*10))
+
+    df_to_send = pd.DataFrame({
+        'group_id': [group_id] * N,
+        'filename': filename_list,
+        'directory_name': [image_path] * N,
+        'keep': keep_list,
+        'modified_time': [modified_time] * N,
+    })
+
+    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
+    cnxn.close()
 
 
 @app.callback(
