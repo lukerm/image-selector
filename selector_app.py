@@ -45,10 +45,17 @@ import config
 
 app = dash.Dash(__name__)
 
+# Redefine some global variables
+STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
+IMAGE_TYPES = config.IMAGE_TYPES
+ROWS_MAX = config.ROWS_MAX
+COLS_MAX = config.COLS_MAX
+N_GRID = config.N_GRID
+
 
 # Assumes that images are stored in the img/ directory for now
 image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
-STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
+
 TMP_DIR = '/tmp'
 
 # Where to save metadata and backup images
@@ -63,13 +70,9 @@ DATABASE_NAME = 'deduplicate'
 DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
 DATABASE_TABLE = 'duplicates'
 
+# Default text for the image path dropdown menu
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
-ROWS_MAX = config.ROWS_MAX
-COLS_MAX = config.COLS_MAX
-N_GRID = config.N_GRID
-
-IMAGE_TYPES = config.IMAGE_TYPES
 
 # Globals for the images
 img_fname = 'job_done.jpg' # Default image
