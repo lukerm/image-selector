@@ -50,6 +50,7 @@ COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
 
 IMAGE_LIST = config.IMAGE_LIST
+IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 EMPTY_IMAGE = config.EMPTY_IMAGE
 
 
@@ -58,7 +59,6 @@ TMP_DIR = '/tmp'
 
 # Where to save metadata and backup images
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
-IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
 os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
 os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
 META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
@@ -228,9 +228,9 @@ def load_images(n, dropdown_value, dropdown_opts):
     image_list = []
     try:
 
-        # Needed copy to a corresponding subfolder in the IMAGE_BACKUP_PATH
-        rel_path, _ = utils.remove_common_beginning(image_dir, IMAGE_BACKUP_PATH)
-        backup_path = os.path.join(IMAGE_BACKUP_PATH, rel_path)
+        # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
+        backup_path, relative_path = utils.get_backup_path(image_dir, IMAGE_BACKUP_PATH)
+
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
         if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
             os.makedirs(backup_path, exist_ok=False)
@@ -245,7 +245,7 @@ def load_images(n, dropdown_value, dropdown_opts):
                 image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path), IMAGE_TYPES)
+            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:

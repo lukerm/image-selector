@@ -29,5 +29,7 @@ IMAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 images = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(IMAGE_DIR))]
 IMAGE_LIST = [html.Img(src=img, style=IMG_STYLE) for img in images]
 IMAGE_LIST = IMAGE_LIST + [html.Img(src=IMG_PATH, style=IMG_STYLE)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
+# Where the image folders should be copied to before deleting images in the original location
+IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
 # Default image
 EMPTY_IMAGE = html.Img(src=IMG_PATH, style=IMG_STYLE)

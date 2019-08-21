@@ -25,6 +25,7 @@ ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
 
+IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 EMPTY_IMAGE = config.EMPTY_IMAGE
 
 
@@ -100,7 +101,29 @@ def find_image_dir_on_system(img_fname):
     return path_options
 
 
+def get_backup_path(original_image_dir, intended_backup_root):
+    """
+    Calculate the location where all the images will be backed up to.
+
+    Args:
+        original_image_dir = str, filepath of where the original images are stored (no filename)
+        intended_backup_root = str, the filepath to the root folder where all image files will be backed up to
+
+    Returns:
+        backup_path = str, full filepath the specific location (within intended_backup_root) these images will be
+                           copied to (no filename)
+        relative_path = str, the relative filepath under intended_backup_root where the images will be backed up to
+                             (no filename)
+    """
+
+    relative_path, _ = remove_common_beginning(original_image_dir, IMAGE_BACKUP_PATH)
+    backup_path = os.path.join(IMAGE_BACKUP_PATH, relative_path)
+
+    return backup_path, relative_path
+
+
 # Database #
+
 
 def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
     """
@@ -109,7 +132,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images originated from
+        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
         filename_list = list, of str, image filenames within the group
         keep_list = list, of bool, whether to keep those images or not
 
@@ -126,12 +149,15 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
 
     # The group's ID is made unique by using the timestamp (up to milliseconds)
     modified_time = datetime.now()
-    group_id = int(datetime.timestamp(modified_time*10))
+    group_id = int(datetime.timestamp(modified_time)*10)
+
+    # Calculate the path where the image is backed up to (i.e. raw data)
+    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
         'filename': filename_list,
-        'directory_name': [image_path] * N,
+        'directory_name': [img_backup_path] * N,
         'keep': keep_list,
         'modified_time': [modified_time] * N,
     })
