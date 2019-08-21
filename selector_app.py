@@ -583,9 +583,9 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     engine = create_engine(database_uri)
     cnxn = engine.connect()
 
-    # The group's ID is made unique by using the timestamp (up to seconds)
+    # The group's ID is made unique by using the timestamp (up to milliseconds)
     modified_time = datetime.now()
-    group_id = int(datetime.timestamp(modified_time))
+    group_id = int(datetime.timestamp(modified_time*10))
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
