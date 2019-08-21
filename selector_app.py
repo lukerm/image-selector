@@ -333,7 +333,7 @@ def parse_image_upload(filename):
     if is_image:
         path_options = find_image_dir_on_system(filename)
         if len(path_options) > 0:
-            return [{'label': path, 'value': i} for i, path in enumerate(path_options)]
+            return [{'label': path, 'value': i} for i, path in enumerate(path_options[::-1])]
         else:
             return []
     else:
