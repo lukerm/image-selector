@@ -50,10 +50,11 @@ ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
 
+IMAGE_LIST = config.IMAGE_LIST
+EMPTY_IMAGE = config.EMPTY_IMAGE
 
-# Assumes that images are stored in the img/ directory for now
-image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 
+# Temporary location for serving files
 TMP_DIR = '/tmp'
 
 # Where to save metadata and backup images
@@ -72,18 +73,6 @@ DATABASE_TABLE = 'duplicates'
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
 
-# Globals for the images
-img_fname = 'job_done.jpg' # Default image
-img_path = STATIC_IMAGE_ROUTE + img_fname
-img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
-
-# List of image objects - pre-load here to avoid re-loading on every grid re-sizing
-images = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(image_directory))]
-IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
-IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
-EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
-
-
 # These define the inputs and outputs to callback function activate_deactivate_cells
 ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
@@ -93,8 +82,8 @@ ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_M
 ## Main ##
 
 # Copy default images to the TMP_DIR so they're available when the program starts
-for fname in sorted(os.listdir(image_directory)):
-    static_image_path = utils.copy_image(fname, image_directory, TMP_DIR, IMAGE_TYPES)
+for fname in sorted(os.listdir(config.IMAGE_DIR)):
+    static_image_path = utils.copy_image(fname, config.IMAGE_DIR, TMP_DIR, IMAGE_TYPES)
 
 
 ## Layout ##
@@ -254,7 +243,7 @@ def load_images(n, dropdown_value, dropdown_opts):
             # Copy to the TMP_DIR from where the image can be served
             static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
-                image_list.append(html.Img(src=static_image_path, style=img_style))
+                image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
             _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, rel_path), IMAGE_TYPES)
