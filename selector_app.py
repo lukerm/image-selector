@@ -461,7 +461,9 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
-    # Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size (ROWS_MAX * COLS_MAX)
+    # Extract the image group and their meta data (filename and keep / delete)
+    # Note: Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size
+    #       (ROWS_MAX * COLS_MAX)
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
@@ -470,8 +472,13 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         for j in range(n_cols):
             # Get the class list (str) for this cell
             my_class = args[j + i*COLS_MAX]
-            # Position on the visible grid
+            # Position on the visible grid (mapped to list index)
             list_pos = j + i*n_rows
+            # As the number of unmasked images shrinks (when the user completes a group, those images disappear), the
+            # list position will eventually run out of the valid indices. As there's no valid metadata in this region
+            # we skip over it
+            if list_pos >= len(unmasked_img_filenames):
+                continue
             image_filename = unmasked_img_filenames[list_pos]
 
             # Check if selected to be in the group, add position if on
