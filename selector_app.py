@@ -65,12 +65,11 @@ DATABASE_TABLE = 'duplicates'
 
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
-# Define the maximal grid dimensions
-ROWS_MAX, COLS_MAX = 7, 7
-N_GRID = ROWS_MAX * COLS_MAX
+ROWS_MAX = config.ROWS_MAX
+COLS_MAX = config.COLS_MAX
+N_GRID = config.N_GRID
 
-# Allowed file extension for image types
-IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
+IMAGE_TYPES = config.IMAGE_TYPES
 
 # Globals for the images
 img_fname = 'job_done.jpg' # Default image
