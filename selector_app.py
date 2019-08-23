@@ -1,21 +1,52 @@
 """
-Dash app for grouping images and choosing the best per-group images.
+Dash app for grouping images and choosing the best per-group images. You also choose whether to delete any images in
+that group.
 
-The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
-clicking on it, or by using the directional keys to move the blue square around.
+Images can be loaded from a directory by clicking on the 'Select images' box and navigating to the correct folder. You
+need only click on one image, then 'Open'. (Alternatively, drag and drop an image from the folder of interest into the
+box.) Due to a technicality, you must select the correct directory from the dropdown menu, then click 'Load directory'.
+This will load all valid image files from that directory (but not subdirectories). Images that fit into the left-hand
+grid will be displayed immediately, but ALL images will be loaded in the background. In addition, the images will be
+backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving).
 
-Each grid cell (td element) will have at least one class name in {'grouped-off', 'grouped-on'}. You can have multiple cells
-with grouped-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
-the 'grouped-off' will (often) have no border, with one exception. A cell can have 'grouped-on' or 'grouped-off' but not both.
+Note: it is assumed that your images are stored under ~/Pictures (aka $HOME/Pictures for Unix-based systems).
+
+Note: it is NOT recommended to host this app over the web -- only use it locally! The Dash framework (rightly) protects
+      clients from being able to observe the server's folder structure, which makes this second step necessary. This
+      program has very strong priveleges over the server's system, so only use it locally!
+
+The left-hand side is a re-sizable grid of images: choose the size from the dropdown menu. You can zoom in on any image
+(shown in the right-hand panel), by clicking on it, or by using the directional keys to navigate the blue square to it.
+
+Each grid cell (td element) will have exactly one class name in {'grouped-off', 'grouped-on'}. There can be multiple cells
+with grouped-on and it currently draws a red square around it. Together, the cells with a red border represent a group
+of images. Those with the 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
+A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it (It
+must be on the image itself.) You can remove an image from a group by double clicking on it.
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
-Note: the way this is coded means that the class ordering is always as follows: 'grouped-o[n|ff][ focus]'.
-        This is not ideal and maybe fixed in the future so that the order does not matter.
+Note: there is a known bug when no cell has the focus and the user tries to 'complete the group' (causes error message
+      but does not crash the program.)
 
-Note: assumes that images originate from ~/Pictures directory
+Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
+or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
+an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
+saving; and backspace or 'd' key for deletion.
+
+Once you've marked all the grouped images up for keeping or deleting, check you're happy with the labels, then finalize
+your choices by clicking 'Complete group'. There is currently no shortcut key for this operation. You must have marked
+all images in the group, or the completion will not go through. If it works, those images will disappear from the grid
+and new ones will appear. In the background, several things happen: 1) the meta data are added to a dictionary in memory
+(and saved to a json file); 2) the meta data are inserted into the database and 3) most importantly, the images marked
+for deletion ARE DELETED from the load folder (but not the backup folder). The main point of this program is to delete
+bad duplicated images.
+
+TODO: create an undo button that reverses the complete group operation.
+
+Continue until ALL the images in that directory have been grouped and annotated before selecing and loading a new one.
 """
 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
@@ -25,10 +56,7 @@ Note: assumes that images originate from ~/Pictures directory
 ## Imports ##
 
 import os
-import re
 import json
-import shutil
-import subprocess
 
 from datetime import date, datetime
 
@@ -39,23 +67,29 @@ from dash.dependencies import Input, Output, State
 
 import flask
 
-import pandas as pd
-from sqlalchemy import create_engine
+import utils
+import config
 
 
 ## Constants ##
 
-app = dash.Dash(__name__)
+# Redefine some global variables
+STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
+IMAGE_TYPES = config.IMAGE_TYPES
+ROWS_MAX = config.ROWS_MAX
+COLS_MAX = config.COLS_MAX
+N_GRID = config.N_GRID
+
+IMAGE_LIST = config.IMAGE_LIST
+IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
+EMPTY_IMAGE = config.EMPTY_IMAGE
 
 
-# Assumes that images are stored in the img/ directory for now
-image_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
-static_image_route = '/'
+# Temporary location for serving files
 TMP_DIR = '/tmp'
 
 # Where to save metadata and backup images
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
-IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
 os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
 os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
 META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
@@ -65,19 +99,8 @@ DATABASE_NAME = 'deduplicate'
 DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
 DATABASE_TABLE = 'duplicates'
 
+# Default text for the image path dropdown menu
 UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
-
-# Define the maximal grid dimensions
-ROWS_MAX, COLS_MAX = 7, 7
-N_GRID = ROWS_MAX * COLS_MAX
-
-# Allowed file extension for image types
-IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
-
-# Globals for the images
-img_fname = 'job_done.jpg' # Default image
-img_path = static_image_route + img_fname
-img_style = {'display': 'block', 'height': 'auto', 'max-width': '100%'}
 
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
@@ -86,128 +109,16 @@ ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS
 ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
 
-## Functions ##
-
-def create_image_grid(n_row, n_col, image_list):
-    """
-    Create a grid of the same image with n_row rows and n_col columns
-    """
-
-    if len(image_list) < ROWS_MAX * COLS_MAX:
-        image_list = image_list + [EMPTY_IMAGE]*(ROWS_MAX * COLS_MAX - len(image_list))
-
-    grid = []
-    for i in range(ROWS_MAX):
-        row = []
-        for j in range(COLS_MAX):
-            hidden = (i >= n_row) or (j >= n_col)
-            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
-        row = html.Tr(row)
-        grid.append(row)
-
-    return html.Div(html.Table(grid))
-
-
-def get_grid_element(image_list, x, y, n_x, n_y, hidden):
-
-    pad = 30/min(n_x, n_y)
-
-    # Set the display to none if this grid cell is hidden
-    if hidden:
-        td_style = {'padding': 0, 'display': 'none',}
-        button_style = {'padding': 0, 'display': 'none',}
-    else:
-        td_style = {'padding': pad}
-        button_style = {'padding': 0}
-
-    my_id = f'{x}-{y}'
-    return html.Td(id='grid-td-' + my_id,
-                   className='grouped-off' if x or y else 'grouped-off focus',
-                   children=html.Button(id='grid-button-' + my_id,
-                                        children=image_list[y + x*n_y],
-                                        style=button_style,
-                                        ),
-                    style=td_style,
-                   )
-
-
-def copy_image(fname, src_path, dst_path):
-    """
-    Perform a copy of the file if it is an image. It will be copied to dst_path.
-
-    Args:
-        fname = str, query filename (no path)
-        src_path = str, directory of where to copy from (no filename)
-        dst_path = str, directory of where to copy to (no filename)
-
-    Returns: str, full filepath that the server is expecting
-             or None, if not an valid image type (see IMAGE_TYPES)
-    """
-
-    # Check if it's a valid image (by extension)
-    is_image = False
-    for img_type in IMAGE_TYPES:
-        if img_type in fname:
-            is_image = True
-            break
-    # Only copy images
-    if not is_image:
-        # Warning on non-directory filenames
-        if len(fname.split('.')) > 1:
-            print(f"WARNING: ignoring non-image file {fname}")
-        return
-
-    # Copy the file to the temporary location (that can be served)
-    shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
-    # Append the Img object with the static path
-    static_image_path = os.path.join(static_image_route, fname)
-
-    return static_image_path
-
-
-def remove_common_beginning(str1, str2):
-    """
-    Strip out the common part at the start of both str1 and str2
-
-    >>> remove_common_beginning('chalk', 'cheese')
-    ('alk', 'eese')
-
-    >>> remove_common_beginning('/common/path/to/a/b/c', '/common/path/to/d/e/f/')
-    ('a/b/c', 'd/e/f/')
-
-    Known failure, should return: ('same', '')
-    >>> remove_common_beginning('samesame', 'same')
-    ('', '')
-    """
-
-    common = ''
-    for i, s in enumerate(str1):
-        if str2.startswith(str1[:i+1]):
-            common = str1[:i+1]
-        else:
-            break
-
-    if len(common) > 0:
-        return str1.split(common)[1], str2.split(common)[1]
-    else:
-        return str1, str2
-
-
 ## Main ##
 
-
-# List of image objects - pre-load here to avoid re-loading on every grid re-sizing
-images = [static_image_route + fname for fname in sorted(os.listdir(image_directory))]
-IMAGE_LIST = [html.Img(src=img, style=img_style) for img in images]
-IMAGE_LIST = IMAGE_LIST + [html.Img(src=img_path, style=img_style)]*(ROWS_MAX*COLS_MAX - len(IMAGE_LIST))
-EMPTY_IMAGE = html.Img(src=img_path, style=img_style)
-
 # Copy default images to the TMP_DIR so they're available when the program starts
-for fname in sorted(os.listdir(image_directory)):
-    static_image_path = copy_image(fname, image_directory, TMP_DIR)
+for fname in sorted(os.listdir(config.IMAGE_DIR)):
+    static_image_path = utils.copy_image(fname, config.IMAGE_DIR, TMP_DIR, IMAGE_TYPES)
 
 
 ## Layout ##
+
+app = dash.Dash(__name__)
 
 # App's layout
 app.layout = html.Div(
@@ -274,7 +185,7 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-image-grid',
-                        children=create_image_grid(2, 2, IMAGE_LIST),
+                        children=utils.create_image_grid(2, 2, IMAGE_LIST, EMPTY_IMAGE),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
                     html.Td([
@@ -310,66 +221,13 @@ app.layout = html.Div(
 def update_image_path_selector(contents_list, filenames_list):
     if contents_list is not None:
         for fname in filenames_list:
-            options_list = parse_image_upload(fname)
+            options_list = utils.parse_image_upload(fname, IMAGE_TYPES)
             if len(options_list) > 0:
                 return (options_list, 0)
             else:
                 continue
 
     return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
-
-
-def parse_image_upload(filename):
-    """
-    Given an image filename, create a list of options for the 'options' for the Dropdown that chooses
-    which path the image should be loaded from.
-    """
-    is_image = False
-    for img_type in IMAGE_TYPES:
-        if img_type in filename:
-            is_image = True
-            break
-
-    if is_image:
-        path_options = find_image_dir_on_system(filename)
-        if len(path_options) > 0:
-            return [{'label': path, 'value': i} for i, path in enumerate(path_options[::-1])]
-        else:
-            return []
-    else:
-        return []
-
-
-def find_image_dir_on_system(img_fname):
-    """
-    Find the location(s) of the given filename on the file system.
-
-    Returns: list of filepaths (excluding filename) where the file can be found.
-    """
-    path_options = subprocess.check_output(['find', os.path.expanduser('~'), '-name', img_fname]).decode()
-    path_options = ['/'.join(f.split('/')[:-1]) for f in path_options.split('\n') if len(f) > 0]
-    return path_options
-
-
-def get_backup_path(original_image_dir, intended_backup_root):
-    """
-    Calculate the location where all the images will be backed up to.
-
-    Args:
-        original_image_dir = str, filepath of where the original images are stored (no filename)
-        intended_backup_root = str, the filepath to the root folder where all image files will be backed up to
-
-    Returns:
-        backup_path = str, full filepath the specific location (within intended_backup_root) these images will be
-                           copied to (no filename)
-        relative_path = str, the relative filepath under intended_backup_root where the images will be backed up to
-                             (no filename)
-    """
-
-    relative_path, _ = remove_common_beginning(original_image_dir, IMAGE_BACKUP_PATH)
-    backup_path = os.path.join(IMAGE_BACKUP_PATH, relative_path)
-
-    return backup_path, relative_path
 
 
 @app.callback(
@@ -402,7 +260,7 @@ def load_images(n, dropdown_value, dropdown_opts):
     try:
 
         # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
-        backup_path, relative_path = get_backup_path(image_dir, IMAGE_BACKUP_PATH)
+        backup_path, relative_path = utils.get_backup_path(image_dir, IMAGE_BACKUP_PATH)
 
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
         if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
@@ -413,12 +271,12 @@ def load_images(n, dropdown_value, dropdown_opts):
             # Copy the image to various location, but only if it is an image!
 
             # Copy to the TMP_DIR from where the image can be served
-            static_image_path = copy_image(fname, image_dir, TMP_DIR)
+            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
-                image_list.append(html.Img(src=static_image_path, style=img_style))
+                image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path))
+            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
@@ -480,7 +338,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     # will refer to the reduced masked list. In order to obtain consistent filenames, we need to apply the previous version
     # of the mask to the image_list (version prior to this completion).
     all_img_filenames = [el['props']['src'].split('/')[-1] for el in image_list]
-    prev_mask = create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
+    prev_mask = utils.create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
@@ -534,95 +392,13 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
             json.dump(image_data, j)
 
         # Save data for the new group in the specified database
-        send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+        utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
 
         # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
         for fname in delete_filenames:
             os.remove(os.path.join(image_path, fname))
 
     return image_data
-
-
-def create_flat_mask(image_mask, len_image_container):
-    """
-    Unpack the image mask into a flat list which states which images from the image container should be masked (as they
-    have already been completed by the user).
-
-    Note: each element (list) in the image mask represents a group of images. The int values in that group state the grid
-          positions (0..n_rows*n_cols) of those images at the time they were grouped, not taking into account previously
-          grouped images. Hence, the image mask must unpacked in order, from left (past) to right (present), in order to
-          calculate the true mask on the image container.
-
-    Args:
-        image_mask = list, of lists of ints, a sequence of visible grid positions that have been completed (grouped)
-                     Note: this is stored in the 'position' key in the image-meta-data
-        len_image_container = int, length of the image container (all images) for the current working directory
-
-    Returns:
-        list, of bool, stating which images should not be shown if they would otherwise be shown in the visible grid
-
-
-    >>> create_flat_mask([[0, 1], [0, 1, 2]], 9)
-    [True, True, True, True, True, False, False, False, False]
-
-    >>> create_flat_mask([[7, 8], [0, 1, 3, 4]], 10)
-    [True, True, False, True, True, False, False, True, True, False]
-
-    >>> create_flat_mask([[0, 1], [1, 2, 3], [1]], 10)
-    [True, True, False, True, True, True, True, False, False, False]
-    """
-
-    true_mask = [False]*len_image_container
-    for group in image_mask:
-        available_count = -1
-        for i, b in enumerate(true_mask):
-            if not b:
-                available_count += 1
-                if available_count in group:
-                    true_mask[i] = True # mask it
-
-    return true_mask
-
-
-def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
-    """
-    Send data pertaining to a completed group of images to the database.
-
-    Args:
-        database_uri = str, of the form accepted by sqlalchemy to create a database connection
-        database_table = str, name of the database table
-        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
-        filename_list = list, of str, image filenames within the group
-        keep_list = list, of bool, whether to keep those images or not
-
-    Returns: None
-
-    Raises: if filename_list and keep_list do not have the same length.
-    """
-
-    N = len(keep_list)
-    assert N == len(filename_list)
-
-    engine = create_engine(database_uri)
-    cnxn = engine.connect()
-
-    # The group's ID is made unique by using the timestamp (up to milliseconds)
-    modified_time = datetime.now()
-    group_id = int(datetime.timestamp(modified_time)*10)
-
-    # Calculate the path where the image is backed up to (i.e. raw data)
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
-
-    df_to_send = pd.DataFrame({
-        'group_id': [group_id] * N,
-        'filename': filename_list,
-        'directory_name': [img_backup_path] * N,
-        'keep': keep_list,
-        'modified_time': [modified_time] * N,
-    })
-
-    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
-    cnxn.close()
 
 
 @app.callback(
@@ -646,10 +422,10 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
         image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
+    flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
-    return create_image_grid(n_row, n_col, image_list)
+    return utils.create_image_grid(n_row, n_col, image_list, EMPTY_IMAGE)
 
 
 @app.callback(
@@ -714,7 +490,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
-    flat_mask = create_flat_mask(image_data[image_path]['position'], len(image_list))
+    flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
@@ -731,198 +507,24 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
     if button_id in ['choose-grid-size', 'image-container', 'image-meta-data', 'loaded-image-path']:
-        return resize_grid_pressed(image_list)
+        return utils.resize_grid_pressed(image_list)
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        return image_cell_pressed(button_id, n_cols, image_list, *args)
+        return utils.image_cell_pressed(button_id, n_cols, image_list, *args)
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        return direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
+        return utils.direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
 
     elif button_id in ['keep-button', 'delete-button']:
-        return keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
+        return utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
 
     else:
         raise ValueError('Unrecognized button ID: %s' % str(button_id))
 
 
-def resize_grid_pressed(image_list):
-    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-    zoomed_img = image_list[0] if len(image_list) > 0 else EMPTY_IMAGE
-    return class_names + [zoomed_img]
-
-
-def image_cell_pressed(button_id, n_cols, image_list, *args):
-    # Grid location of the pressed button
-    cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
-    # Class name of the pressed button
-    previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
-    previous_class_clicked = previous_class_clicked.split(' ')
-
-    new_classes = []
-    cell_last_clicked = None
-    for i in range(ROWS_MAX):
-        for j in range(COLS_MAX):
-            # Toggle the class of the pressed button
-            if cell_loc == [i, j]:
-                # Toggle the focus according to these rules
-                if 'grouped-off' in previous_class_clicked and 'focus' not in previous_class_clicked:
-                    new_class_clicked = class_toggle_grouped(class_toggle_focus(previous_class_clicked))
-                elif 'grouped-off' in previous_class_clicked and 'focus' in previous_class_clicked:
-                    new_class_clicked = class_toggle_grouped(previous_class_clicked)
-                elif 'grouped-on' in previous_class_clicked and 'focus' not in previous_class_clicked:
-                    new_class_clicked = class_toggle_focus(previous_class_clicked)
-                else:
-                    assert 'grouped-on' in previous_class_clicked
-                    assert 'focus' in previous_class_clicked
-                    new_class_clicked = class_turn_off_keep_delete(class_toggle_grouped(class_toggle_focus(previous_class_clicked)))
-
-                cell_last_clicked = cell_loc
-                new_class_clicked = ' '.join(new_class_clicked)
-                new_classes.append(new_class_clicked)
-            # All others retain their class name, except the previous last clicked gets demoted
-            else:
-                previous_class = args[N_GRID + j + i*COLS_MAX]
-                # If it was not previously clicked, this cell just keeps it old class name
-                if 'focus' not in previous_class:
-                    new_class = previous_class
-                # In this case, this cell currently holds the "last clicked" status, but it must now yield it to
-                # the newly clicked cell
-                elif 'focus' in previous_class and 'focus' not in previous_class_clicked:
-                    new_class = ' '.join(class_toggle_focus(previous_class.split(' ')))
-
-                else:
-                    # For debugging
-                    print(cell_loc)
-                    print((i, j))
-                    print(previous_class)
-                    print(previous_class_clicked)
-                    raise ValueError('Impossible combination')
-
-                new_classes.append(new_class)
-
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
-    return new_classes + [zoomed_img]
-
-
-def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
-
-    new_classes = []
-    cell_last_clicked = None
-    for i in range(ROWS_MAX):
-        for j in range(COLS_MAX):
-            my_class = args[N_GRID + j + i*COLS_MAX]
-
-            # There's no need to change the class of a cell that is hidden
-            if i >= n_rows or j >= n_cols:
-                new_classes.append(my_class)
-                continue
-
-            if button_id == 'move-left':
-                right_ngbr_i, right_ngbr_j = i, (j+1) % n_cols
-                check_class = args[N_GRID + right_ngbr_j + right_ngbr_i*COLS_MAX]
-            elif button_id == 'move-right':
-                left_ngbr_i, left_ngbr_j = i, (j-1) % n_cols
-                check_class = args[N_GRID + left_ngbr_j + left_ngbr_i*COLS_MAX]
-            elif button_id == 'move-up':
-                above_ngbr_i, above_ngbr_j = (i+1) % n_rows, j
-                check_class = args[N_GRID + above_ngbr_j + above_ngbr_i*COLS_MAX]
-            elif button_id == 'move-down':
-                below_ngbr_i, below_ngbr_j = (i-1) % n_rows, j
-                check_class = args[N_GRID + below_ngbr_j + below_ngbr_i*COLS_MAX]
-
-            # Move focus away from the cell with it
-            if 'focus' in my_class:
-                new_classes.append(' '.join(class_toggle_focus(my_class.split(' '))))
-            else:
-                # In this case, we receive focus from the appropriate neighbour:
-                # update our class name and note the cell location for the image zoom panel
-                # Note: as the focus was previously elsewhere, we cannot have it
-                if 'focus' in check_class:
-                    new_classes.append(' '.join(class_toggle_focus(my_class.split(' '))))
-                    cell_last_clicked = [i, j]
-                else:
-                    new_classes.append(my_class)
-
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
-    return new_classes + [zoomed_img]
-
-
-def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
-
-    new_classes = []
-    cell_last_clicked = None
-    for i in range(ROWS_MAX):
-        for j in range(COLS_MAX):
-            my_class = args[N_GRID + j + i*COLS_MAX]
-
-            # There's no need to change the class of a cell that is hidden
-            if i >= n_rows or j >= n_cols:
-                new_classes.append(my_class)
-                continue
-
-            if 'focus' in my_class:
-                cell_last_clicked = [i, j]
-
-            # It must be in the group to be kept or deleted
-            if 'focus' in my_class and 'grouped-on' in my_class:
-                if 'keep' in button_id:
-                    new_classes.append(' '.join(class_toggle_keep(my_class.split(' '))))
-                else:
-                    assert 'delete' in button_id
-                    new_classes.append(' '.join(class_toggle_delete(my_class.split(' '))))
-
-            else:
-                new_classes.append(my_class)
-
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
-    return new_classes + [zoomed_img]
-
-
-# Functions for dealing with class names
-
-def class_toggle_grouped(class_list):
-
-    new_class_list = []
-    for c in class_list:
-        if c == 'grouped-on':
-            new_class_list.append('grouped-off')
-        elif c == 'grouped-off':
-            new_class_list.append('grouped-on')
-        else:
-            new_class_list.append(c)
-
-    return new_class_list
-
-
-def class_toggle_focus(class_list):
-    if 'focus' in class_list:
-        return [c for c in class_list if c != 'focus']
-    else:
-        return class_list + ['focus']
-
-
-def class_toggle_keep(class_list):
-    if 'keep' in class_list:
-        return [c for c in class_list if c != 'keep']
-    else:
-        return [c for c in class_list if c != 'delete'] + ['keep']
-
-
-def class_toggle_delete(class_list):
-    if 'delete' in class_list:
-        return [c for c in class_list if c != 'delete']
-    else:
-        return [c for c in class_list if c != 'keep'] + ['delete']
-
-
-def class_turn_off_keep_delete(class_list):
-    return [c for c in class_list if c not in ['keep', 'delete']]
-
-
-@app.server.route('{}<image_path>'.format(static_image_route))
+@app.server.route('{}<image_path>'.format(STATIC_IMAGE_ROUTE))
 def serve_image(image_path):
     """
     Allows an image to be served from the given image_path
