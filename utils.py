@@ -1,4 +1,5 @@
 """
+Utility functions supporting selector_app.py
 """
 
 ## Imports ##

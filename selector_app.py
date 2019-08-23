@@ -1,21 +1,52 @@
 """
-Dash app for grouping images and choosing the best per-group images.
+Dash app for grouping images and choosing the best per-group images. You also choose whether to delete any images in
+that group.
 
-The left-hand side is a re-sizable grid of images. You can zoom in on any image (shown in the right-hand panel), by
-clicking on it, or by using the directional keys to move the blue square around.
+Images can be loaded from a directory by clicking on the 'Select images' box and navigating to the correct folder. You
+need only click on one image, then 'Open'. (Alternatively, drag and drop an image from the folder of interest into the
+box.) Due to a technicality, you must select the correct directory from the dropdown menu, then click 'Load directory'.
+This will load all valid image files from that directory (but not subdirectories). Images that fit into the left-hand
+grid will be displayed immediately, but ALL images will be loaded in the background. In addition, the images will be
+backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving).
 
-Each grid cell (td element) will have at least one class name in {'grouped-off', 'grouped-on'}. You can have multiple cells
-with grouped-on and it currently draws a red square around it. This will eventually represent the grouping. Those with
-the 'grouped-off' will (often) have no border, with one exception. A cell can have 'grouped-on' or 'grouped-off' but not both.
+Note: it is assumed that your images are stored under ~/Pictures (aka $HOME/Pictures for Unix-based systems).
+
+Note: it is NOT recommended to host this app over the web -- only use it locally! The Dash framework (rightly) protects
+      clients from being able to observe the server's folder structure, which makes this second step necessary. This
+      program has very strong priveleges over the server's system, so only use it locally!
+
+The left-hand side is a re-sizable grid of images: choose the size from the dropdown menu. You can zoom in on any image
+(shown in the right-hand panel), by clicking on it, or by using the directional keys to navigate the blue square to it.
+
+Each grid cell (td element) will have exactly one class name in {'grouped-off', 'grouped-on'}. There can be multiple cells
+with grouped-on and it currently draws a red square around it. Together, the cells with a red border represent a group
+of images. Those with the 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
+A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it (It
+must be on the image itself.) You can remove an image from a group by double clicking on it.
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
-Note: the way this is coded means that the class ordering is always as follows: 'grouped-o[n|ff][ focus]'.
-        This is not ideal and maybe fixed in the future so that the order does not matter.
+Note: there is a known bug when no cell has the focus and the user tries to 'complete the group' (causes error message
+      but does not crash the program.)
 
-Note: assumes that images originate from ~/Pictures directory
+Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
+or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
+an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
+saving; and backspace or 'd' key for deletion.
+
+Once you've marked all the grouped images up for keeping or deleting, check you're happy with the labels, then finalize
+your choices by clicking 'Complete group'. There is currently no shortcut key for this operation. You must have marked
+all images in the group, or the completion will not go through. If it works, those images will disappear from the grid
+and new ones will appear. In the background, several things happen: 1) the meta data are added to a dictionary in memory
+(and saved to a json file); 2) the meta data are inserted into the database and 3) most importantly, the images marked
+for deletion ARE DELETED from the load folder (but not the backup folder). The main point of this program is to delete
+bad duplicated images.
+
+TODO: create an undo button that reverses the complete group operation.
+
+Continue until ALL the images in that directory have been grouped and annotated before selecing and loading a new one.
 """
 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
