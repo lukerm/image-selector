@@ -57,6 +57,7 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 import os
 import json
+import argparse
 
 from datetime import date, datetime
 
@@ -263,7 +264,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         backup_path, relative_path = utils.get_backup_path(image_dir, IMAGE_BACKUP_PATH)
 
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
-        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
+        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH and not program_args.demo:
             os.makedirs(backup_path, exist_ok=False)
 
         for fname in sorted(os.listdir(image_dir)):
@@ -276,7 +277,8 @@ def load_images(n, dropdown_value, dropdown_opts):
                 image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
+            if not program_args.demo:
+                _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
@@ -387,16 +389,17 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data[image_path]['keep'].append(grouped_cell_keeps)
         image_data[image_path]['filename'].append(grouped_filenames)
 
-        # Save all meta data in JSON format on disk
-        with open(META_DATA_FPATH, 'w') as j:
-            json.dump(image_data, j)
+        if not program_args.demo:
+            # Save all meta data in JSON format on disk
+            with open(META_DATA_FPATH, 'w') as j:
+                json.dump(image_data, j)
 
-        # Save data for the new group in the specified database
-        utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+            # Save data for the new group in the specified database
+            utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
 
-        # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
-        for fname in delete_filenames:
-            os.remove(os.path.join(image_path, fname))
+            # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+            for fname in delete_filenames:
+                os.remove(os.path.join(image_path, fname))
 
     return image_data
 
@@ -537,4 +540,15 @@ def serve_image(image_path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Dash app for grouping images and choosing the best per-group images. ' +\
+                    'You also choose whether to delete any images in that group.'
+    )
+    parser.add_argument('--demo', action='store_true', default=False,
+                        help='for demonstration purposes only - do not perform any file or database operations'
+                        )
+
+    global program_args
+    program_args = parser.parse_args()
+
     app.run_server(debug=True)
