@@ -7,7 +7,8 @@ need only click on one image, then 'Open'. (Alternatively, drag and drop an imag
 box.) Due to a technicality, you must select the correct directory from the dropdown menu, then click 'Load directory'.
 This will load all valid image files from that directory (but not subdirectories). Images that fit into the left-hand
 grid will be displayed immediately, but ALL images will be loaded in the background. In addition, the images will be
-backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving).
+backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving). Images are ordered
+by the time they were taken.
 
 Note: it is assumed that your images are stored under ~/Pictures (aka $HOME/Pictures for Unix-based systems).
 
@@ -51,6 +52,9 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
 #                   > Click Backspace / +
+
+# TODO: KNOWN BUG: when there are images without timestamps, the image ordering is incorrect and can lead to bad data in
+#                   the database / image-meta-data. However, this is an unlikely case.
 
 
 ## Imports ##
