@@ -204,9 +204,9 @@ app.layout = html.Div(
         ]),
         html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'}),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
-        # images are stored. For each directory, there are two keys - 'position' and 'keep' - where each is a list of
-        # lists of ints (representing image groups, in time order). This data structure can be handled by the Store
-        # component (as it's serializable).
+        # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
+        # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
+        # handled by the Store component (as it's serializable).
         dcc.Store(id='image-meta-data', data={'__ignore': {'position': [], 'keep': [], 'filename': []}}, storage_type='session'),
         # For storing the image path WHEN THE confirm-load-directory IS CLICKED (the label in choose-image-path may
         # change without their being a new upload, so we need to record this value)
