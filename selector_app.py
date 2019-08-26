@@ -360,6 +360,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
+    grouped_date_taken = []
     delete_filenames = []
     for i in range(n_rows):
         for j in range(n_cols):
@@ -378,6 +379,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
             if 'grouped-on' in my_class:
                 grouped_cell_positions.append(list_pos)
                 grouped_filenames.append(image_filename)
+                grouped_date_taken.append(utils.get_image_taken_date(image_path, image_filename, default_date=None))
 
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
@@ -404,7 +406,14 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
             json.dump(image_data, j)
 
         # Save data for the new group in the specified database
-        utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+        utils.send_to_database(
+                DATABASE_URI,
+                DATABASE_TABLE,
+                image_path,
+                grouped_filenames,
+                grouped_cell_keeps,
+                grouped_date_taken,
+        )
 
         # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
         for fname in delete_filenames:

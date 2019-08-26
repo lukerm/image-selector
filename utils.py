@@ -152,7 +152,7 @@ def get_backup_path(original_image_dir, intended_backup_root):
 # Database #
 
 
-def send_to_database(database_uri, database_table, image_path, filename_list, keep_list):
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list, date_taken_list):
     """
     Send data pertaining to a completed group of images to the database.
 
@@ -162,6 +162,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
         image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
         filename_list = list, of str, image filenames within the group
         keep_list = list, of bool, whether to keep those images or not
+        date_taken_list = list, of datetime.datetime, when the images were originally taken (elements can be None)
 
     Returns: None
 
@@ -187,6 +188,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
         'directory_name': [img_backup_path] * N,
         'keep': keep_list,
         'modified_time': [modified_time] * N,
+        'picture_taken_time': date_taken_list,
     })
 
     df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
