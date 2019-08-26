@@ -9,8 +9,10 @@ import os
 import shutil
 import subprocess
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine
+
+from PIL import Image
 
 import pandas as pd
 
@@ -89,6 +91,30 @@ def parse_image_upload(filename, image_types):
             return []
     else:
         return []
+
+
+def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timedelta(days=3652)):
+    """
+    Obtain the date when the photo was taken from the meta data (if available).
+
+    Args:
+        image_dir = str, filepath to the image
+        fname = str, name of the image file (no path)
+        default_date = datetime.datetime, a value to return in case this data is not available
+                        Note: default value is 10 years in the future so that date sorting is possible
+
+    Returns: datetime.datetime object, representing when the image was taken
+    """
+
+    image = Image.open(os.path.join(image_dir, fname))
+    image_metadata = image._getexif()
+
+    if image_metadata is not None:
+        datetime_str = image_metadata.get(36867) # Key corresponding to "DateTimeOriginal"
+        if datetime_str is not None:
+            return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
+
+    return default_date
 
 
 def find_image_dir_on_system(img_fname):
