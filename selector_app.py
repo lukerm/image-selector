@@ -61,6 +61,7 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 import os
 import json
+import argparse
 
 from datetime import date, datetime
 
@@ -68,6 +69,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 import flask
 
@@ -102,9 +104,6 @@ META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNA
 DATABASE_NAME = 'deduplicate'
 DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
 DATABASE_TABLE = 'duplicates'
-
-# Default text for the image path dropdown menu
-UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
@@ -148,7 +147,7 @@ app.layout = html.Div(
         ),
         dcc.Dropdown(
             id='choose-image-path',
-            options=[{'label': UNSELECTED_PATH_TEXT, 'value': 0}],
+            options=[{'label': config.IMAGE_DIR, 'value': 0}],
             value=0,
             style={'width': '40vw',}
         ),
@@ -231,7 +230,7 @@ def update_image_path_selector(contents_list, filenames_list):
             else:
                 continue
 
-    return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
+    raise PreventUpdate
 
 
 @app.callback(
@@ -257,6 +256,12 @@ def load_images(n, dropdown_value, dropdown_opts):
     Note: It fails to load if it finds that the backup folder already exists, as this implies the folder was worked before
     """
 
+    # Prevent the update if 'confirm-load-directory' Button has never been clicked before
+    context = dash.callback_context
+    if context.triggered[0]['prop_id'] == 'confirm-load-directory.n_clicks':
+        if context.triggered[0]['value'] is None:
+            raise PreventUpdate
+
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
@@ -268,7 +273,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         backup_path, relative_path = utils.get_backup_path(image_dir, IMAGE_BACKUP_PATH)
 
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
-        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH:
+        if image_dir != config.IMAGE_DIR and backup_path.rstrip('/') != IMAGE_BACKUP_PATH and not program_args.demo:
             os.makedirs(backup_path, exist_ok=False)
 
         for fname in sorted(os.listdir(image_dir)):
@@ -283,7 +288,8 @@ def load_images(n, dropdown_value, dropdown_opts):
                 image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
+            if not program_args.demo:
+                _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Sort the image list by date, earliest to latest
         imgs_dates = list(zip(image_list, image_date))
@@ -401,23 +407,24 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data[image_path]['keep'].append(grouped_cell_keeps)
         image_data[image_path]['filename'].append(grouped_filenames)
 
-        # Save all meta data in JSON format on disk
-        with open(META_DATA_FPATH, 'w') as j:
-            json.dump(image_data, j)
+        if not program_args.demo:
+            # Save all meta data in JSON format on disk
+            with open(META_DATA_FPATH, 'w') as j:
+                json.dump(image_data, j)
 
-        # Save data for the new group in the specified database
-        utils.send_to_database(
-                DATABASE_URI,
-                DATABASE_TABLE,
-                image_path,
-                grouped_filenames,
-                grouped_cell_keeps,
-                grouped_date_taken,
-        )
+            # Save data for the new group in the specified database
+            utils.send_to_database(
+                    DATABASE_URI,
+                    DATABASE_TABLE,
+                    image_path,
+                    grouped_filenames,
+                    grouped_cell_keeps,
+                    grouped_date_taken,
+            )
 
-        # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
-        for fname in delete_filenames:
-            os.remove(os.path.join(image_path, fname))
+            # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+            for fname in delete_filenames:
+                os.remove(os.path.join(image_path, fname))
 
     return image_data
 
@@ -558,4 +565,15 @@ def serve_image(image_path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Dash app for grouping images and choosing the best per-group images. ' +\
+                    'You also choose whether to delete any images in that group.'
+    )
+    parser.add_argument('--demo', action='store_true', default=False,
+                        help='for demonstration purposes only - do not perform any file or database operations'
+                        )
+
+    global program_args
+    program_args = parser.parse_args()
+
     app.run_server(debug=True)
