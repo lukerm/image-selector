@@ -65,6 +65,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 import flask
 
@@ -99,9 +100,6 @@ META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNA
 DATABASE_NAME = 'deduplicate'
 DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
 DATABASE_TABLE = 'duplicates'
-
-# Default text for the image path dropdown menu
-UNSELECTED_PATH_TEXT = 'NO PATH SELECTED'
 
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
@@ -145,7 +143,7 @@ app.layout = html.Div(
         ),
         dcc.Dropdown(
             id='choose-image-path',
-            options=[{'label': UNSELECTED_PATH_TEXT, 'value': 0}],
+            options=[{'label': config.IMAGE_DIR, 'value': 0}],
             value=0,
             style={'width': '40vw',}
         ),
@@ -228,7 +226,7 @@ def update_image_path_selector(contents_list, filenames_list):
             else:
                 continue
 
-    return ([{'label': UNSELECTED_PATH_TEXT, 'value': 0}], 0)
+    raise PreventUpdate
 
 
 @app.callback(
@@ -264,7 +262,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         backup_path, relative_path = utils.get_backup_path(image_dir, IMAGE_BACKUP_PATH)
 
         # Do not allow recopy, as it implies this folder has been worked before (may cause integrity errors)
-        if UNSELECTED_PATH_TEXT not in image_dir and backup_path.rstrip('/') != IMAGE_BACKUP_PATH and not program_args.demo:
+        if image_dir != config.IMAGE_DIR and backup_path.rstrip('/') != IMAGE_BACKUP_PATH and not program_args.demo:
             os.makedirs(backup_path, exist_ok=False)
 
         for fname in sorted(os.listdir(image_dir)):
