@@ -252,6 +252,12 @@ def load_images(n, dropdown_value, dropdown_opts):
     Note: It fails to load if it finds that the backup folder already exists, as this implies the folder was worked before
     """
 
+    # Prevent the update if 'confirm-load-directory' Button has never been clicked before
+    context = dash.callback_context
+    if context.triggered[0]['prop_id'] == 'confirm-load-directory.n_clicks':
+        if context.triggered[0]['value'] is None:
+            raise PreventUpdate
+
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
 
