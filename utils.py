@@ -65,7 +65,14 @@ def copy_image(fname, src_path, dst_path, image_types):
         return
 
     # Copy the file to the temporary location (that can be served)
-    shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
+    # Some images must be rotated, in which case we do so before saving
+    rotate_degrees = get_image_rotation(src_path, fname)
+    if rotate_degrees == 0:
+        shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
+    else:
+        pil_image = Image.open(os.path.join(src_path, fname))
+        pil_image.rotate(rotate_degrees).save(os.path.join(dst_path, fname))
+
     # Append the Img object with the static path
     static_image_path = os.path.join(STATIC_IMAGE_ROUTE, fname)
 
@@ -115,6 +122,38 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
             return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
 
     return default_date
+
+
+def get_image_rotation(image_dir, fname):
+    """
+    Calculate how much to rotate the image from the encoded orientation value (if available).
+
+    Args:
+        image_dir = str, filepath to the image
+        fname = str, name of the image file (no path)
+
+    Returns: int, the number of degrees to rotate the image to get it the right way up
+    Raises: ValueError, if we encounter a rare EXIF orientation value, e.g. 2, 4, 5, 7
+
+    See here for more details: https://www.impulseadventure.com/photo/exif-orientation.html
+    """
+    image = Image.open(os.path.join(image_dir, fname))
+    image_metadata = image._getexif()
+    if image_metadata is not None:
+        orientation_value = image_metadata.get(274, 1) # Key corresponding to "Orientation"
+    else:
+        return 0
+
+    if orientation_value == 1:
+        return 0
+    elif orientation_value == 8:
+        return 90
+    elif orientation_value == 3:
+        return 180
+    elif orientation_value == 6:
+        return 270
+    else:
+        raise ValueError(f'Cannot handle EXIF orientation value of {orientation_value}')
 
 
 def find_image_dir_on_system(img_fname):

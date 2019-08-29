@@ -280,7 +280,7 @@ def load_images(n, dropdown_value, dropdown_opts):
 
             # Copy the image to various location, but only if it is an image!
 
-            # Copy to the TMP_DIR from where the image can be served
+            # Copy to the TMP_DIR from where the image can be served (roate on the fly if necessary)
             static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
                 img_datetime = utils.get_image_taken_date(image_dir, fname)
