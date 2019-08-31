@@ -71,7 +71,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         shutil.copyfile(os.path.join(src_path, fname), os.path.join(dst_path, fname))
     else:
         pil_image = Image.open(os.path.join(src_path, fname))
-        pil_image.rotate(rotate_degrees).save(os.path.join(dst_path, fname))
+        pil_image.rotate(rotate_degrees, expand=1).save(os.path.join(dst_path, fname))
 
     # Append the Img object with the static path
     static_image_path = os.path.join(STATIC_IMAGE_ROUTE, fname)
