@@ -4,5 +4,6 @@ CREATE TABLE duplicates (
     filename TEXT NOT NULL,
     directory_name TEXT NOT NULL,
     keep BOOLEAN NOT NULL,
-    modified_time TIMESTAMP NOT NULL
+    modified_time TIMESTAMP NOT NULL,
+    picture_taken_time TIMESTAMP
 );

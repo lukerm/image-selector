@@ -7,7 +7,8 @@ need only click on one image, then 'Open'. (Alternatively, drag and drop an imag
 box.) Due to a technicality, you must select the correct directory from the dropdown menu, then click 'Load directory'.
 This will load all valid image files from that directory (but not subdirectories). Images that fit into the left-hand
 grid will be displayed immediately, but ALL images will be loaded in the background. In addition, the images will be
-backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving).
+backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving). Images are ordered
+by the time they were taken.
 
 Note: it is assumed that your images are stored under ~/Pictures (aka $HOME/Pictures for Unix-based systems).
 
@@ -51,6 +52,9 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
 #                   > Click Backspace / +
+
+# TODO: KNOWN BUG: when there are images without timestamps, the image ordering is incorrect and can lead to bad data in
+#                   the database / image-meta-data. However, this is an unlikely case.
 
 
 ## Imports ##
@@ -199,9 +203,9 @@ app.layout = html.Div(
         ]),
         html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'}),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
-        # images are stored. For each directory, there are two keys - 'position' and 'keep' - where each is a list of
-        # lists of ints (representing image groups, in time order). This data structure can be handled by the Store
-        # component (as it's serializable).
+        # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
+        # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
+        # handled by the Store component (as it's serializable).
         dcc.Store(id='image-meta-data', data={'__ignore': {'position': [], 'keep': [], 'filename': []}}, storage_type='session'),
         # For storing the image path WHEN THE confirm-load-directory IS CLICKED (the label in choose-image-path may
         # change without their being a new upload, so we need to record this value)
@@ -262,6 +266,7 @@ def load_images(n, dropdown_value, dropdown_opts):
     image_dir = opts[dropdown_value]
 
     image_list = []
+    image_date = []
     try:
 
         # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
@@ -275,14 +280,21 @@ def load_images(n, dropdown_value, dropdown_opts):
 
             # Copy the image to various location, but only if it is an image!
 
-            # Copy to the TMP_DIR from where the image can be served
+            # Copy to the TMP_DIR from where the image can be served (roate on the fly if necessary)
             static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
+                img_datetime = utils.get_image_taken_date(image_dir, fname)
+                image_date.append(img_datetime)
                 image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
             if not program_args.demo:
                 _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
+
+        # Sort the image list by date, earliest to latest
+        imgs_dates = list(zip(image_list, image_date))
+        imgs_dates_sorted = sorted(imgs_dates, key=lambda x: x[1])
+        image_list = [img for img, date in imgs_dates_sorted]
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
@@ -354,6 +366,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
+    grouped_date_taken = []
     delete_filenames = []
     for i in range(n_rows):
         for j in range(n_cols):
@@ -372,6 +385,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
             if 'grouped-on' in my_class:
                 grouped_cell_positions.append(list_pos)
                 grouped_filenames.append(image_filename)
+                grouped_date_taken.append(utils.get_image_taken_date(image_path, image_filename, default_date=None))
 
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
@@ -399,7 +413,14 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 json.dump(image_data, j)
 
             # Save data for the new group in the specified database
-            utils.send_to_database(DATABASE_URI, DATABASE_TABLE, image_path, grouped_filenames, grouped_cell_keeps)
+            utils.send_to_database(
+                    DATABASE_URI,
+                    DATABASE_TABLE,
+                    image_path,
+                    grouped_filenames,
+                    grouped_cell_keeps,
+                    grouped_date_taken,
+            )
 
             # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
             for fname in delete_filenames:
