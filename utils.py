@@ -110,18 +110,22 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
         default_date = datetime.datetime, a value to return in case this data is not available
                         Note: default value is 10 years in the future so that date sorting is possible
 
-    Returns: datetime.datetime object, representing when the image was taken
+    Returns: datetime.datetime object, representing when the image was taken (None if fname cannot be found in image_dir)
     """
 
-    image = Image.open(os.path.join(image_dir, fname))
-    image_metadata = image._getexif()
+    try:
+        image = Image.open(os.path.join(image_dir, fname))
+        image_metadata = image._getexif()
 
-    if image_metadata is not None:
-        datetime_str = image_metadata.get(36867) # Key corresponding to "DateTimeOriginal"
-        if datetime_str is not None:
-            return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
+        if image_metadata is not None:
+            datetime_str = image_metadata.get(36867) # Key corresponding to "DateTimeOriginal"
+            if datetime_str is not None:
+                return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
 
-    return default_date
+        return default_date
+
+    except FileNotFoundError:
+        return None
 
 
 def get_image_rotation(image_dir, fname):
