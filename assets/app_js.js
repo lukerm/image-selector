@@ -19,4 +19,10 @@ function clickButtonFunction(event){
   if(event.key == 'Backspace'){
     document.getElementById("delete-button").click();
   }
+  if(event.key == 's'){
+    document.getElementById("keep-button").click();
+  }
+  if(event.key == 'd'){
+    document.getElementById("delete-button").click();
+  }
 }
