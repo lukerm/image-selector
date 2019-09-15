@@ -148,7 +148,7 @@ def get_image_rotation(image_dir, fname):
     else:
         return 0
 
-    if orientation_value == 1:
+    if orientation_value in [0, 1]:
         return 0
     elif orientation_value == 8:
         return 90
@@ -157,7 +157,7 @@ def get_image_rotation(image_dir, fname):
     elif orientation_value == 6:
         return 270
     else:
-        raise ValueError(f'Cannot handle EXIF orientation value of {orientation_value}')
+        raise ValueError(f'Cannot handle EXIF orientation value of {orientation_value} for image {fname}')
 
 
 def find_image_dir_on_system(img_fname):
