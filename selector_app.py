@@ -123,63 +123,75 @@ app = dash.Dash(__name__)
 # App's layout
 app.layout = html.Div(
     children=[
-        html.Div(id='hidden-div', style={'display': 'none'}),
-        html.H2("Image Selector"),
-        dcc.Upload(
-                id='upload-image',
-                children=html.Div([
-                    'Drag and Drop or ',
-                    html.A('Select Images')
+        html.Div([
+            html.Div(id='hidden-div', style={'display': 'none'}),
+            html.H3("Image Selector"),
+            dcc.Upload(
+                    id='upload-image',
+                    children=html.Div([
+                        'Drag and Drop or ',
+                        html.A('Select Images')
+                    ]),
+                    style={
+                        'width': '50vw',
+                        'height': '5vh',
+                        'lineHeight': '40px',
+                        'borderWidth': '1px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '5px',
+                        'textAlign': 'center',
+                    },
+                    multiple=True
+            ),
+            html.Table(
+                html.Tr([
+                    html.Td(
+                        dcc.Dropdown(
+                            id='choose-image-path',
+                            options=[{'label': config.IMAGE_DIR, 'value': 0}],
+                            value=0,
+                            style={'width': '40vw', 'height': '20%'}
+                        ),
+                    ),
+                    html.Td(
+                        dcc.Dropdown(
+                            id='choose-grid-size',
+                            options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
+                            value=2,
+                            style={'width': '10vw',}
+                        ),
+                    ),
                 ]),
-                style={
-                    'width': '40vw',
-                    'height': '60px',
-                    'lineHeight': '60px',
-                    'borderWidth': '1px',
-                    'borderStyle': 'dashed',
-                    'borderRadius': '5px',
-                    'textAlign': 'center',
-                },
-                multiple=True
-        ),
-        dcc.Dropdown(
-            id='choose-image-path',
-            options=[{'label': config.IMAGE_DIR, 'value': 0}],
-            value=0,
-            style={'width': '40vw',}
-        ),
-        html.Tr([
-            html.Td([
-                html.Button(
-                    id='confirm-load-directory',
-                    children='Load directory',
-                    style={'width': '10vw', }
-                ),
-            ]),
-            html.Td([
-                html.Button(
-                    id='complete-group',
-                    children='Complete group',
-                    style={'width': '10vw', }
-                )
-            ]),
-        ]),
-        dcc.Dropdown(
-            id='choose-grid-size',
-            options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
-            value=2,
-            style={'width': '10vw'}
-        ),
-        html.Div([
-            html.Button(id='move-left', children='Move left'),
-            html.Button(id='move-right', children='Move right'),
-            html.Button(id='move-up', children='Move up'),
-            html.Button(id='move-down', children='Move down'),
-        ], style={'display': 'none'}),
-        html.Div([
-            html.Button(id='keep-button', children='Keep'),
-            html.Button(id='delete-button', children='Delete'),
-        ], style={'display': 'none'}),
+            ),
+            html.Table(
+                html.Tr([
+                    html.Td(
+                        html.Button(
+                            id='confirm-load-directory',
+                            children='Load directory',
+                            style={'width': '10vw', }
+                        ),
+                    ),
+                    html.Td(
+                        html.Button(
+                            id='complete-group',
+                            children='Complete group',
+                            style={'width': '10vw', }
+                        )
+                    ),
+                ]),
+            ),
+            html.Div([
+                html.Button(id='move-left', children='Move left'),
+                html.Button(id='move-right', children='Move right'),
+                html.Button(id='move-up', children='Move up'),
+                html.Button(id='move-down', children='Move down'),
+            ], style={'display': 'none'}),
+            html.Div([
+                html.Button(id='keep-button', children='Keep'),
+                html.Button(id='delete-button', children='Delete'),
+            ], style={'display': 'none', 'height': 'auto'}),
+        ], style={'height': '20vh'}),
         html.Div([
             html.Table([
                 html.Tr([
