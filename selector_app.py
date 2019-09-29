@@ -78,15 +78,12 @@ import config
 
 # Redefine some global variables
 STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
+IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 IMAGE_TYPES = config.IMAGE_TYPES
+
 ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
-
-IMAGE_LIST = config.IMAGE_LIST
-IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
-EMPTY_IMAGE = config.EMPTY_IMAGE
-
 
 # Temporary location for serving files
 TMP_DIR = '/tmp'
@@ -197,20 +194,22 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-image-grid',
-                        children=utils.create_image_grid(2, 2, IMAGE_LIST, EMPTY_IMAGE),
+                        children=utils.create_image_grid(2, 2, config.IMAGE_SRCS),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
                     html.Td([
                         html.Div(
                             id='zoomed-image',
-                            children=IMAGE_LIST[0],
+                            children=html.Img(src=config.IMAGE_SRCS[0], style=config.IMG_STYLE_ZOOM),
                             style={'width': '50%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
                         )
                     ], style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
                 ]),
             ]),
         ]),
-        html.Div(id='image-container', children=html.Tr(IMAGE_LIST), style={'display': 'none'}),
+        # Stores the list of image locations (sources) for a given directory - initially the default images are given
+        # from the config (until the user loads a new image folder).
+        dcc.Store(id='image-container', data=config.IMAGE_SRCS),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
         # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
         # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
@@ -244,7 +243,7 @@ def update_image_path_selector(contents_list, filenames_list):
 
 @app.callback(
     [
-     Output('image-container', 'children'),
+     Output('image-container', 'data'),
      Output('loaded-image-path', 'data'),
     ],
     [Input('confirm-load-directory', 'n_clicks')],
@@ -294,7 +293,7 @@ def load_images(n, dropdown_value, dropdown_opts):
             if static_image_path is not None:
                 img_datetime = utils.get_image_taken_date(image_dir, fname)
                 image_date.append(img_datetime)
-                image_list.append(html.Img(src=static_image_path, style=config.IMG_STYLE))
+                image_list.append(static_image_path)
 
             # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
             if not program_args.demo:
@@ -307,17 +306,17 @@ def load_images(n, dropdown_value, dropdown_opts):
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
-            image_list.append(EMPTY_IMAGE)
+            image_list.append(config.IMG_PATH)
 
     except FileNotFoundError:
-        return html.Tr([]), ['__ignore']
+        return [], ['__ignore']
 
     except FileExistsError:
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
-    # Return a 2-tuple: 0) is a wrapped list of Imgs; 1) is a single-entry list containing the loaded path
-    return html.Tr(image_list), [image_dir]
+    # Return a 2-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path
+    return image_list, [image_dir]
 
 
 @app.callback(
@@ -326,7 +325,7 @@ def load_images(n, dropdown_value, dropdown_opts):
     [
      State('choose-grid-size', 'value'),
      State('choose-grid-size', 'value'),
-     State('image-container', 'children'),
+     State('image-container', 'data'),
      State('image-meta-data', 'data'),
      State('loaded-image-path', 'data'),
     ] + ALL_TD_ID_STATES
@@ -342,7 +341,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         n_group = int, number of times the complete-group button is clicked (Input)
         n_rows = int, current number of rows in the grid (Input: indicates resizing)
         n_cols = int, current number of columns in the grid (Input: indicates resizing)
-        image_list = dict, containing a list of Img objects under ['props']['children']
+        image_list = list, containing a list of file paths where the valid images for the chosen directory are stored
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
         image_path = str, the filepath where the images in image-container were loaded from
@@ -352,10 +351,6 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         updated version of the image mask (if any new group was legitimately completed)
     """
 
-    # Unpack the image_list if necessary
-    if type(image_list) is dict:
-        image_list = image_list['props']['children']
-
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
@@ -364,7 +359,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     # The image_list (from image-container) contains ALL images in this directory, whereas as the list positions below
     # will refer to the reduced masked list. In order to obtain consistent filenames, we need to apply the previous version
     # of the mask to the image_list (version prior to this completion).
-    all_img_filenames = [el['props']['src'].split('/')[-1] for el in image_list]
+    all_img_filenames = [src.split('/')[-1] for src in image_list]
     prev_mask = utils.create_flat_mask(image_data[image_path]['position'], len(all_img_filenames))
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
@@ -442,27 +437,36 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     Output('responsive-image-grid', 'children'),
     [Input('choose-grid-size', 'value'),
      Input('choose-grid-size', 'value'),
-     Input('image-container', 'children'),
+     Input('image-container', 'data'),
      Input('image-meta-data', 'data'),
     ],
     [State('loaded-image-path', 'data'),]
 )
 def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path):
+    """
+    Get an HTML element corresponding to the responsive image grid.
 
-    # Unpack the image_list if necessary
-    if type(image_list) is dict:
-        image_list = image_list['props']['children']
+    Args:
+        n_rows = int, current number of rows in the grid (Input: indicates resizing)
+        n_cols = int, current number of columns in the grid (Input: indicates resizing)
+        image_list = list, containing a list of file paths where the valid images for the chosen directory are stored
+        image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
+                     Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
+        image_path = list, of 1 str, the filepath where the images in image-container were loaded from
 
-    # Unpack the single-element list
+    Returns: html.Div element (containing the grid of images) that can update the responsive-image-grid element
+    """
+
     image_path = image_path[0]
+    # If it doesn't already exist, add an entry (dict) for this image path into the data dictionary
     if image_path not in image_data:
         image_data[image_path] = {'position': [], 'keep': [], 'filename': []}
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
-    image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
+    image_list = [img_src for i, img_src in enumerate(image_list) if not flat_mask[i]]
 
-    return utils.create_image_grid(n_row, n_col, image_list, EMPTY_IMAGE)
+    return utils.create_image_grid(n_row, n_col, image_list)
 
 
 @app.callback(
@@ -476,7 +480,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('move-down', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
-         Input('image-container', 'children'),
+         Input('image-container', 'data'),
          Input('image-meta-data', 'data'),
          Input('loaded-image-path', 'data'),
     ] + ALL_BUTTONS_IDS,
@@ -501,7 +505,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         n_down = int, number of clicks on the 'move-down' button (indicates shifting)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
-        image_list = dict, containing a list of Img objects under ['props']['children']
+        image_list = list, of str, specifying where the image files are stored
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
         image_path = str, the filepath where the images in image-container were loaded from
 
@@ -517,10 +521,6 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         args[N_GRID:] are States (Tds)
     """
 
-    # Unpack the image list / mask
-    if image_list:
-        image_list = image_list['props']['children']
-
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
@@ -534,7 +534,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     context = dash.callback_context
     if not context.triggered:
         class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-        zoomed_img = image_list[0]
+        zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM)
         return class_names + [zoomed_img]
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]

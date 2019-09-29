@@ -240,13 +240,14 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
 
 # Grid tools #
 
-def create_image_grid(n_row, n_col, image_list, empty_image):
+
+def create_image_grid(n_row, n_col, image_list):
     """
     Create a grid of the same image with n_row rows and n_col columns
     """
 
     if len(image_list) < ROWS_MAX * COLS_MAX:
-        image_list = image_list + [empty_image]*(ROWS_MAX * COLS_MAX - len(image_list))
+        image_list = image_list + [config.IMG_PATH]*(ROWS_MAX * COLS_MAX - len(image_list))
 
     grid = []
     for i in range(ROWS_MAX):
@@ -285,7 +286,7 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
 
 def resize_grid_pressed(image_list):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-    zoomed_img = image_list[0] if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return class_names + [zoomed_img]
 
 
@@ -338,7 +339,8 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
 
                 new_classes.append(new_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
@@ -381,7 +383,8 @@ def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
                 else:
                     new_classes.append(my_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
@@ -412,7 +415,8 @@ def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
             else:
                 new_classes.append(my_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
