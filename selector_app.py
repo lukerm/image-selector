@@ -53,6 +53,8 @@ Continue until ALL the images in that directory have been grouped and annotated 
 # TODO: KNOWN BUG: select image directory > Load directory > Resize 4x4 > Click: {(0,1), (0,2), (0,3)} > Resize 5x5 / 3x3
 #                   > Click Backspace / +
 
+# TODO: KNOWN BUG: the "empty image" (see config) can be selected and included in a group - this should not be allowed!
+
 
 ## Imports ##
 
