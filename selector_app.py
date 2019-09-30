@@ -188,7 +188,7 @@ app.layout = html.Div(
                 html.Button(id='keep-button', children='Keep'),
                 html.Button(id='delete-button', children='Delete'),
             ], style={'display': 'none', 'height': 'auto'}),
-        ], style={'height': '20vh'}),
+        ], style={'height': '17vh'}),
         html.Div([
             html.Table([
                 html.Tr([
@@ -203,7 +203,7 @@ app.layout = html.Div(
                             children=html.Img(src=config.IMAGE_SRCS[0], style=config.IMG_STYLE_ZOOM),
                             style={'width': '50%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
                         )
-                    ], style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}),
+                    ], style={'width': '50vw', 'height': '75vh', 'border-style': 'solid',}),
                 ]),
             ]),
         ]),
