@@ -1,5 +1,5 @@
 CREATE TABLE duplicates (
-    image_id SERIAL,
+    image_id SERIAL PRIMARY KEY,
     group_id BIGINT NOT NULL,
     filename TEXT NOT NULL,
     directory_name TEXT NOT NULL,
