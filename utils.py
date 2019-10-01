@@ -269,7 +269,7 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
         button_style = {'padding': 0, 'display': 'none',}
     else:
         td_style = {'padding': 5}
-        button_style = {'padding': 0}
+        button_style = {'padding': 0, 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
 
     my_id = f'{x}-{y}'
     image = image_list[y + x*n_y]
