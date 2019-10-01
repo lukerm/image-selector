@@ -201,7 +201,7 @@ app.layout = html.Div(
                         html.Div(
                             id='zoomed-image',
                             children=html.Img(src=config.IMAGE_SRCS[0], style=config.IMG_STYLE_ZOOM),
-                            style={'width': '50%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
+                            style={'width': '70%', 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
                         )
                     ], style={'width': '50vw', 'height': '75vh', 'border-style': 'solid',}),
                 ]),
