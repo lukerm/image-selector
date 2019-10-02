@@ -59,10 +59,9 @@ Continue until ALL the images in that directory have been grouped and annotated 
 ## Imports ##
 
 import os
-import json
 import argparse
 
-from datetime import date, datetime
+from datetime import date
 
 import dash
 import dash_core_components as dcc
@@ -92,17 +91,6 @@ EMPTY_IMAGE = config.EMPTY_IMAGE
 
 # Temporary location for serving files
 TMP_DIR = '/tmp'
-
-# Where to save metadata and backup images
-META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
-os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
-os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
-META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
-
-# Database details
-DATABASE_NAME = 'deduplicate'
-DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
-DATABASE_TABLE = 'duplicates'
 
 
 # These define the inputs and outputs to callback function activate_deactivate_cells
@@ -293,7 +281,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         # Sort the image list by date, earliest to latest
         imgs_dates = list(zip(image_list, image_date))
         imgs_dates_sorted = sorted(imgs_dates, key=lambda x: x[1])
-        image_list = [img for img, date in imgs_dates_sorted]
+        image_list = [img for img, _ in imgs_dates_sorted]
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
@@ -362,6 +350,9 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     # Extract the image group and their meta data (filename and keep / delete)
     # Note: Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size
     #       (ROWS_MAX * COLS_MAX)
+    focus_position = None
+    focus_filename = None
+    focus_date_taken = None
     grouped_cell_positions = []
     grouped_cell_keeps = []
     grouped_filenames = []
@@ -386,6 +377,11 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 grouped_filenames.append(image_filename)
                 grouped_date_taken.append(utils.get_image_taken_date(image_path, image_filename, default_date=None))
 
+            if 'focus' in my_class:
+                focus_position = list_pos
+                focus_filename = image_filename
+                focus_date_taken = utils.get_image_taken_date(image_path, image_filename, default_date=None)
+
             # Check for keep / delete status
             # Note: important not to append if keep/delete status not yet specified
             if 'keep' in my_class:
@@ -402,28 +398,32 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     # TODO: flag something (warning?) to user if list lengths do not match
     # TODO: if check 2 fails, it currently junks the data - possible to hold onto it?
     if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
+
         image_data[image_path]['position'].append(grouped_cell_positions)
         image_data[image_path]['keep'].append(grouped_cell_keeps)
         image_data[image_path]['filename'].append(grouped_filenames)
 
         if not program_args.demo:
-            # Save all meta data in JSON format on disk
-            with open(META_DATA_FPATH, 'w') as j:
-                json.dump(image_data, j)
 
-            # Save data for the new group in the specified database
-            utils.send_to_database(
-                    DATABASE_URI,
-                    DATABASE_TABLE,
-                    image_path,
-                    grouped_filenames,
-                    grouped_cell_keeps,
-                    grouped_date_taken,
+            utils.record_grouped_data(
+                image_data=image_data, image_path=image_path,
+                filename_list=grouped_filenames, keep_list=grouped_cell_keeps, date_taken_list=grouped_date_taken,
             )
 
-            # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
-            for fname in delete_filenames:
-                os.remove(os.path.join(image_path, fname))
+
+    # This is a small trick for quickly saving (keeping) the focussed image (provided none have been grouped)
+    elif len(grouped_cell_positions) == 0 and focus_position is not None and focus_filename is not None:
+
+        image_data[image_path]['position'].append([focus_position])
+        image_data[image_path]['keep'].append([True])
+        image_data[image_path]['filename'].append([focus_filename])
+
+        if not program_args.demo:
+
+            utils.record_grouped_data(
+                image_data=image_data, image_path=image_path,
+                filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
+            )
 
     return image_data
 
