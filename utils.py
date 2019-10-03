@@ -286,13 +286,14 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
 
 # Grid tools #
 
-def create_image_grid(n_row, n_col, image_list, empty_image):
+
+def create_image_grid(n_row, n_col, image_list):
     """
     Create a grid of the same image with n_row rows and n_col columns
     """
 
     if len(image_list) < ROWS_MAX * COLS_MAX:
-        image_list = image_list + [empty_image]*(ROWS_MAX * COLS_MAX - len(image_list))
+        image_list = image_list + [config.IMG_PATH]*(ROWS_MAX * COLS_MAX - len(image_list))
 
     grid = []
     for i in range(ROWS_MAX):
@@ -308,21 +309,29 @@ def create_image_grid(n_row, n_col, image_list, empty_image):
 
 def get_grid_element(image_list, x, y, n_x, n_y, hidden):
 
-    pad = 30/min(n_x, n_y)
-
     # Set the display to none if this grid cell is hidden
     if hidden:
         td_style = {'padding': 0, 'display': 'none',}
         button_style = {'padding': 0, 'display': 'none',}
     else:
-        td_style = {'padding': pad}
-        button_style = {'padding': 0}
+        td_style = {'padding': 5}
+        button_style = {'padding': 0, 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
 
     my_id = f'{x}-{y}'
+    image = image_list[y + x*n_y]
+    style = {
+        'display': 'block',
+        'height': 'auto',
+        'width': 'auto',
+        'max-height': f'{65 // n_x}vh', # < 75vh (see layout) due to the padding
+        'max-width': f'{50 // n_y}vw',
+    }
+    image = html.Img(src=image, style=style)
+
     return html.Td(id='grid-td-' + my_id,
                    className='grouped-off' if x or y else 'grouped-off focus',
                    children=html.Button(id='grid-button-' + my_id,
-                                        children=image_list[y + x*n_y],
+                                        children=image,
                                         style=button_style,
                                         ),
                     style=td_style,
@@ -331,7 +340,7 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
 
 def resize_grid_pressed(image_list):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-    zoomed_img = image_list[0] if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return class_names + [zoomed_img]
 
 
@@ -384,7 +393,8 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
 
                 new_classes.append(new_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
@@ -427,7 +437,8 @@ def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
                 else:
                     new_classes.append(my_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
@@ -458,7 +469,8 @@ def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
             else:
                 new_classes.append(my_class)
 
-    zoomed_img = image_list[cell_last_clicked[1] + cell_last_clicked[0]*n_cols] if len(image_list) > 0 else EMPTY_IMAGE
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
 
