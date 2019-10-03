@@ -330,6 +330,12 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         updated version of the image mask (if any new group was legitimately completed)
     """
 
+    # Prevent this button from firing when the app first loads (causing the first image to be classified)
+    context = dash.callback_context
+    if not context.inputs['complete-group.n_clicks']:
+        PreventUpdate
+        return image_data
+
     # Unpack the image_list if necessary
     if type(image_list) is dict:
         image_list = image_list['props']['children']
