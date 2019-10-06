@@ -66,6 +66,7 @@ from datetime import date
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -113,6 +114,41 @@ app.layout = html.Div(
         html.Div([
             html.Div(id='hidden-div', style={'display': 'none'}),
             html.H3("Image Selector"),
+            dbc.Modal([
+                dbc.ModalHeader("Shortcuts"),
+                dbc.ModalBody([
+                    html.Table([
+                        html.Tr([
+                            html.Td("←/→", style={'width': '150px'}),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus left / right")
+                        ]),
+                        html.Tr([
+                            html.Td("↑/↓"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus up / down")
+                        ]),
+                        html.Tr([
+                            html.Td("s / ="),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Mark image for keeping")
+                        ]),
+                        html.Tr([
+                            html.Td("d / ⌫"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Mark image for deletion")
+                        ]),
+                        html.Tr([
+                            html.Td("Shift + c"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Complete image group")
+                        ]),
+                    ]),
+                ]),
+                dbc.ModalFooter(
+                    dbc.Button("Close", id="hide-shortcuts", className="ml-auto")
+                ),
+            ], id="modal"),
             dcc.Upload(
                     id='upload-image',
                     children=html.Div([
@@ -166,6 +202,13 @@ app.layout = html.Div(
                             style={'width': '10vw', }
                         )
                     ),
+                    html.Td([
+                        html.Button(
+                            id='view-shortcuts',
+                            children='View shortcuts',
+                            style={'width': '10vw', }
+                        )
+                    ]),
                 ]),
             ),
             html.Div([
@@ -213,6 +256,17 @@ app.layout = html.Div(
 
 
 ## Callbacks ##
+
+@app.callback(
+    Output("modal", "is_open"),
+    [Input("view-shortcuts", "n_clicks"), Input("hide-shortcuts", "n_clicks")],
+    [State("modal", "is_open")],
+)
+def toggle_shortcut_popup(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
+
 
 @app.callback(
     [Output('choose-image-path', 'options'), Output('choose-image-path', 'value')],
