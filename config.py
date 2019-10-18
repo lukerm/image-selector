@@ -5,6 +5,8 @@ Store variables needed across the project
 import os
 import dash_html_components as html
 
+from datetime import date, datetime
+
 
 # Where images will be served from
 STATIC_IMAGE_ROUTE = '/'
@@ -36,3 +38,14 @@ IMAGE_SRCS = IMAGE_SRCS + [IMG_PATH]*(ROWS_MAX*COLS_MAX - len(IMAGE_SRCS))
 IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
 # Default image
 EMPTY_IMAGE = html.Img(src=IMG_PATH, style=IMG_STYLE)
+
+# Where to save metadata and backup images
+META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
+os.makedirs(IMAGE_BACKUP_PATH, exist_ok=True)
+os.makedirs(os.path.join(IMAGE_BACKUP_PATH, '_session_data'), exist_ok=True)
+META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNAME)
+
+# Database details
+DATABASE_NAME = 'deduplicate'
+DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
+DATABASE_TABLE = 'duplicates'

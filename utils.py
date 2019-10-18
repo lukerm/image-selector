@@ -6,6 +6,7 @@ Utility functions supporting selector_app.py
 
 import re
 import os
+import json
 import shutil
 import subprocess
 
@@ -236,6 +237,51 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
 
     df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
     cnxn.close()
+
+
+def record_grouped_data(image_data: dict, image_path: str, filename_list: list, keep_list: list, date_taken_list: list):
+    """
+    Perform a collection of operations that record the choices for a group of images:
+        1) dump data in a JSON file,
+        2) save the data to the specified database
+        3) delete unwanted files from the system
+
+    All arguments (except image_data) correspond to a single set of grouped images.
+
+    Args:
+        image_data = dict, indexed by str keys referring to the filepath of this set of images, each with three subkeys:
+                     position, keep, filename
+        image_path = str, the filepath to this group of images
+        filename_list = list, of str, the filename of each image in this group (can be found at image_path)
+        keep_list = list, of bool, choice of whether to keep each image or not
+                    Note: order corresponds to filenames list
+        date_taken_list = list, of datetime.datetime, when the image was taken
+                          Note: order corresponds to filenames list
+
+    Returns: None
+
+    Note: a major side effect is that all files that are not kept (see keeps) are deleted from the file system.
+            However, they can be recovered from IMAGE_BACKUP_PATH.
+    """
+
+    # Save all meta data in JSON format on disk
+    with open(config.META_DATA_FPATH, 'w') as j:
+        json.dump(image_data, j)
+
+    # Save data for the new group in the specified database
+    send_to_database(
+            config.DATABASE_URI,
+            config.DATABASE_TABLE,
+            image_path,
+            filename_list,
+            keep_list,
+            date_taken_list,
+    )
+
+    # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+    for i, fname in enumerate(filename_list):
+        if not keep_list[i]:
+            os.remove(os.path.join(image_path, fname))
 
 
 # Grid tools #

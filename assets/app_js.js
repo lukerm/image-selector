@@ -25,4 +25,7 @@ function clickButtonFunction(event){
   if(event.key == 'd'){
     document.getElementById("delete-button").click();
   }
+  if(event.key == 'C'){
+    document.getElementById("complete-group").click();
+  }
 }
