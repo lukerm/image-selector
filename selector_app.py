@@ -247,6 +247,8 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
+        # Store the number of images
+        dcc.Store(id='n_images', data=[24]),
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
         # from the config (until the user loads a new image folder).
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
@@ -296,6 +298,7 @@ def update_image_path_selector(contents_list, filenames_list):
     [
      Output('image-container', 'data'),
      Output('loaded-image-path', 'data'),
+     Output('n_images', 'data'),
     ],
     [Input('confirm-load-directory', 'n_clicks')],
     [
@@ -354,20 +357,21 @@ def load_images(n, dropdown_value, dropdown_opts):
         imgs_dates = list(zip(image_list, image_date))
         imgs_dates_sorted = sorted(imgs_dates, key=lambda x: x[1])
         image_list = [img for img, _ in imgs_dates_sorted]
+        n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(config.IMG_PATH)
 
     except FileNotFoundError:
-        return [], ['__ignore']
+        return [], ['__ignore'], [0]
 
     except FileExistsError:
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
-    # Return a 2-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path
-    return image_list, [image_dir]
+    # Return a 3-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path, 2) number of images loaded
+    return image_list, [image_dir], [n_images]
 
 
 @app.callback(
