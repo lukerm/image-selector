@@ -375,7 +375,7 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 
 @app.callback(
-    Output('image-meta-data', 'data'),
+    [Output('image-meta-data', 'data'), Output('progress_bar', 'value')],
     [Input('complete-group', 'n_clicks')],
     [
      State('choose-grid-size', 'value'),
@@ -383,9 +383,10 @@ def load_images(n, dropdown_value, dropdown_opts):
      State('image-container', 'data'),
      State('image-meta-data', 'data'),
      State('loaded-image-path', 'data'),
+     State('n_images', 'data'),
     ] + ALL_TD_ID_STATES
 )
-def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, *args):
+def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
@@ -400,17 +401,19 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
         image_path = str, the filepath where the images in image-container were loaded from
+        n_images = int, number of images originally loaded in the given directory
         *args = positional arguments are States (given by the grid-Tds for knowing the class names)
 
     Returns:
-        updated version of the image mask (if any new group was legitimately completed)
+        0) updated version of the image mask (if any new group was legitimately completed)
+        1) Percentage of images completed so far
     """
 
     # Prevent this button from firing when the app first loads (causing the first image to be classified)
     context = dash.callback_context
     if not context.inputs['complete-group.n_clicks']:
         PreventUpdate
-        return image_data
+        return image_data, [0]
 
     # Unpack the single-element list
     image_path = image_path[0]
@@ -503,7 +506,8 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
             )
 
-    return image_data
+    pct_complete = round(100 * len(image_data[image_path]['position']) / n_images[0]) # Note: n_images is a single-entry list
+    return image_data, pct_complete
 
 
 @app.callback(
