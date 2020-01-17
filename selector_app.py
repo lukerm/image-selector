@@ -209,6 +209,13 @@ app.layout = html.Div(
                             style={'width': '10vw', }
                         )
                     ]),
+                    html.Td([
+                        html.Div([dbc.Progress(
+                            id='progress_bar',
+                            value=0,
+                            style={'width': '20vw', }
+                        )])
+                    ]),
                 ]),
             ),
             html.Div([
