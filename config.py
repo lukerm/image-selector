@@ -17,7 +17,7 @@ N_GRID = ROWS_MAX * COLS_MAX
 
 
 # Allowed file extension for image types
-IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png']
+IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png', '.PNG']
 
 # Globals for the images
 img_fname = 'job_done.jpg' # Default image
