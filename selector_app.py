@@ -506,7 +506,8 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
                 filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
             )
 
-    pct_complete = round(100 * len(image_data[image_path]['position']) / n_images[0]) # Note: n_images is a single-entry list
+    imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
+    pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
     return image_data, pct_complete
 
 
