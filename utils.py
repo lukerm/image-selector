@@ -167,7 +167,7 @@ def find_image_dir_on_system(img_fname):
 
     Returns: list of filepaths (excluding filename) where the file can be found.
     """
-    path_options = subprocess.check_output(['find', os.path.expanduser('~'), '-name', img_fname]).decode()
+    path_options = subprocess.check_output(['find', os.path.expanduser('~/Pictures'), '-name', img_fname]).decode()
     path_options = ['/'.join(f.split('/')[:-1]) for f in path_options.split('\n') if len(f) > 0]
     return path_options
 
