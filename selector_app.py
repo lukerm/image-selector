@@ -395,10 +395,10 @@ def load_images(n, dropdown_value, dropdown_opts):
 )
 def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
-    Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
-    or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
-    those files are backed up in the IMAGE_BACKUP_PATH) and send the meta data to the specified database: see
-    DATABASE_NAME and DATABASE_TABLE.
+    Updates the image_mask by appending / deleting relevant info to / from it. This happens when either 'Complete group'
+    or Undo' button is clicked. We also delete (resp. recreate) the unwanted files when a valid completion (resp. undo)
+    is made (although those files are always backed up in the IMAGE_BACKUP_PATH) and send (resp. delete)the meta data to
+    the specified database: see DATABASE_NAME and DATABASE_TABLE (in config.py).
 
     Args:
         n_group = int, number of times the complete-group button is clicked (Input)
