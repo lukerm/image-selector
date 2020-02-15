@@ -202,6 +202,13 @@ app.layout = html.Div(
                             style={'width': '10vw', }
                         )
                     ),
+                    html.Td(
+                        html.Button(
+                            id='undo-button',
+                            children='Undo',
+                            style={'width': '10vw', }
+                        )
+                    ),
                     html.Td([
                         html.Button(
                             id='view-shortcuts',
