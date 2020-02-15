@@ -393,7 +393,7 @@ def load_images(n, dropdown_value, dropdown_opts):
      State('n_images', 'data'),
     ] + ALL_TD_ID_STATES
 )
-def complete_image_group_or_undo(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
+def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
