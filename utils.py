@@ -11,8 +11,9 @@ import shutil
 import subprocess
 
 from datetime import datetime, timedelta
-from sqlalchemy import create_engine
+from typing import List, Any
 
+from sqlalchemy import create_engine
 from PIL import Image
 
 import pandas as pd
@@ -584,3 +585,22 @@ def remove_common_beginning(str1, str2):
         return str1.split(common)[1], str2.split(common)[1]
     else:
         return str1, str2
+
+
+def calc_percentage_complete(completed_groups: List[List[Any]], total_images: int) -> int:
+    """
+    Calculate the approximate (rounded to int) percentage of images completed, calculated from the current list of
+    completed groups.
+
+    :param: completed_groups, list, of list of ?, a two-depth list containing group information (to be flattened)
+    :param: int, target number of images to do
+    :return: int, % of images done so far, rounded
+
+    >>> calc_percentage_complete([[0, 1, 3], [0, 1]], 10)
+    50
+    """
+
+    n_imgs_completed = len([image for group in completed_groups for image in group])
+    pct_complete = round(100 * n_imgs_completed / total_images)
+
+    return pct_complete

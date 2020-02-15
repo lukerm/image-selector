@@ -523,8 +523,8 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                     filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
                 )
 
-        imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
-        pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
+        # Note: n_images is a single-entry list
+        pct_complete = utils.calc_percentage_complete(image_data[image_path]['position'], n_images[0])
         return image_data, pct_complete
 
     elif mode == 'undo':
@@ -543,8 +543,8 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
         except IndexError:
             pass
 
-        imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
-        pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
+        # Note: n_images is a single-entry list
+        pct_complete = utils.calc_percentage_complete(image_data[image_path]['position'], n_images[0])
         return image_data, pct_complete
 
     else:
