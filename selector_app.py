@@ -528,7 +528,24 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
         return image_data, pct_complete
 
     elif mode == 'undo':
-        return image_data, [0]
+
+        # Remove the last entry from each list in the metadata (corresponding to the last group)
+        try:
+            image_data[image_path]['position'].pop()
+            image_data[image_path]['keep'].pop()
+            image_data[image_path]['filename'].pop()
+
+            if not program_args.demo:
+                # TODO: undo from database, etc.
+                pass
+
+        # In case the lists are already empty
+        except IndexError:
+            pass
+
+        imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
+        pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
+        return image_data, pct_complete
 
     else:
         raise ValueError(f'Unknown mode: {mode}')
