@@ -383,7 +383,7 @@ def load_images(n, dropdown_value, dropdown_opts):
 
 @app.callback(
     [Output('image-meta-data', 'data'), Output('progress_bar', 'value')],
-    [Input('complete-group', 'n_clicks')],
+    [Input('complete-group', 'n_clicks'), Input('undo-button', 'n_clicks')],
     [
      State('choose-grid-size', 'value'),
      State('choose-grid-size', 'value'),
@@ -393,7 +393,7 @@ def load_images(n, dropdown_value, dropdown_opts):
      State('n_images', 'data'),
     ] + ALL_TD_ID_STATES
 )
-def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
+def complete_image_group_or_undo(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
     Updates the image_mask by appending relevant info to it. This happens when either 'Complete group' button is clicked
     or the visible grid size is updated. We also delete the unwanted files when a valid completion is made (although
@@ -402,6 +402,7 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
 
     Args:
         n_group = int, number of times the complete-group button is clicked (Input)
+        n_undo = int, number of times the undo-button is clicked (Input)
         n_rows = int, current number of rows in the grid (Input: indicates resizing)
         n_cols = int, current number of columns in the grid (Input: indicates resizing)
         image_list = list, containing a list of file paths where the valid images for the chosen directory are stored
@@ -416,9 +417,15 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
         1) Percentage of images completed so far
     """
 
-    # Prevent this button from firing when the app first loads (causing the first image to be classified)
+    # Find the button that triggered this callback (if any)
+    # Note: also prevent this button from firing when the app first loads (causing the first image to be classified)
     context = dash.callback_context
-    if not context.inputs['complete-group.n_clicks']:
+    button_id = context.triggered[0]['prop_id'].split('.')[0]
+    if button_id == 'complete-group':
+        mode = 'complete'
+    elif button_id == 'undo-button':
+        mode = 'undo'
+    else:
         PreventUpdate
         return image_data, [0]
 
@@ -435,87 +442,96 @@ def complete_image_group(n_group, n_rows, n_cols, image_list, image_data, image_
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
-    # Extract the image group and their meta data (filename and keep / delete)
-    # Note: Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size
-    #       (ROWS_MAX * COLS_MAX)
-    focus_position = None
-    focus_filename = None
-    focus_date_taken = None
-    grouped_cell_positions = []
-    grouped_cell_keeps = []
-    grouped_filenames = []
-    grouped_date_taken = []
-    delete_filenames = []
-    for i in range(n_rows):
-        for j in range(n_cols):
-            # Get the class list (str) for this cell
-            my_class = args[j + i*COLS_MAX]
-            # Position on the visible grid (mapped to list index)
-            list_pos = j + i*n_rows
-            # As the number of unmasked images shrinks (when the user completes a group, those images disappear), the
-            # list position will eventually run out of the valid indices. As there's no valid metadata in this region
-            # we skip over it
-            if list_pos >= len(unmasked_img_filenames):
-                continue
-            image_filename = unmasked_img_filenames[list_pos]
+    print(mode)
+    if mode == 'complete':
 
-            # Check if selected to be in the group, add position if on
-            if 'grouped-on' in my_class:
-                grouped_cell_positions.append(list_pos)
-                grouped_filenames.append(image_filename)
-                grouped_date_taken.append(utils.get_image_taken_date(image_path, image_filename, default_date=None))
+        # Extract the image group and their meta data (filename and keep / delete)
+        # Note: Need to adjust for the disconnect between the visible grid size (n_rows * n_cols) and the virtual grid size
+        #       (ROWS_MAX * COLS_MAX)
+        focus_position = None
+        focus_filename = None
+        focus_date_taken = None
+        grouped_cell_positions = []
+        grouped_cell_keeps = []
+        grouped_filenames = []
+        grouped_date_taken = []
+        delete_filenames = []
+        for i in range(n_rows):
+            for j in range(n_cols):
+                # Get the class list (str) for this cell
+                my_class = args[j + i*COLS_MAX]
+                # Position on the visible grid (mapped to list index)
+                list_pos = j + i*n_rows
+                # As the number of unmasked images shrinks (when the user completes a group, those images disappear), the
+                # list position will eventually run out of the valid indices. As there's no valid metadata in this region
+                # we skip over it
+                if list_pos >= len(unmasked_img_filenames):
+                    continue
+                image_filename = unmasked_img_filenames[list_pos]
 
-            if 'focus' in my_class:
-                focus_position = list_pos
-                focus_filename = image_filename
-                focus_date_taken = utils.get_image_taken_date(image_path, image_filename, default_date=None)
+                # Check if selected to be in the group, add position if on
+                if 'grouped-on' in my_class:
+                    grouped_cell_positions.append(list_pos)
+                    grouped_filenames.append(image_filename)
+                    grouped_date_taken.append(utils.get_image_taken_date(image_path, image_filename, default_date=None))
 
-            # Check for keep / delete status
-            # Note: important not to append if keep/delete status not yet specified
-            if 'keep' in my_class:
-                grouped_cell_keeps.append(True)
-            elif 'delete' in my_class:
-                grouped_cell_keeps.append(False)
-                delete_filenames.append(image_filename)
-            else:
-                pass
+                if 'focus' in my_class:
+                    focus_position = list_pos
+                    focus_filename = image_filename
+                    focus_date_taken = utils.get_image_taken_date(image_path, image_filename, default_date=None)
 
-    # Check 1: some data has been collected since last click (no point appending empty lists)
-    # Check 2: list lengths match, i.e. for each cell in the group, the keep / delete status has been declared
-    # If either check fails, do nothing
-    # TODO: flag something (warning?) to user if list lengths do not match
-    # TODO: if check 2 fails, it currently junks the data - possible to hold onto it?
-    if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
+                # Check for keep / delete status
+                # Note: important not to append if keep/delete status not yet specified
+                if 'keep' in my_class:
+                    grouped_cell_keeps.append(True)
+                elif 'delete' in my_class:
+                    grouped_cell_keeps.append(False)
+                    delete_filenames.append(image_filename)
+                else:
+                    pass
 
-        image_data[image_path]['position'].append(grouped_cell_positions)
-        image_data[image_path]['keep'].append(grouped_cell_keeps)
-        image_data[image_path]['filename'].append(grouped_filenames)
+        # Check 1: some data has been collected since last click (no point appending empty lists)
+        # Check 2: list lengths match, i.e. for each cell in the group, the keep / delete status has been declared
+        # If either check fails, do nothing
+        # TODO: flag something (warning?) to user if list lengths do not match
+        # TODO: if check 2 fails, it currently junks the data - possible to hold onto it?
+        if len(grouped_cell_positions) > 0 and len(grouped_cell_positions) == len(grouped_cell_keeps):
 
-        if not program_args.demo:
+            image_data[image_path]['position'].append(grouped_cell_positions)
+            image_data[image_path]['keep'].append(grouped_cell_keeps)
+            image_data[image_path]['filename'].append(grouped_filenames)
 
-            utils.record_grouped_data(
-                image_data=image_data, image_path=image_path,
-                filename_list=grouped_filenames, keep_list=grouped_cell_keeps, date_taken_list=grouped_date_taken,
-            )
+            if not program_args.demo:
+
+                utils.record_grouped_data(
+                    image_data=image_data, image_path=image_path,
+                    filename_list=grouped_filenames, keep_list=grouped_cell_keeps, date_taken_list=grouped_date_taken,
+                )
 
 
-    # This is a small trick for quickly saving (keeping) the focussed image (provided none have been grouped)
-    elif len(grouped_cell_positions) == 0 and focus_position is not None and focus_filename is not None:
+        # This is a small trick for quickly saving (keeping) the focussed image (provided none have been grouped)
+        elif len(grouped_cell_positions) == 0 and focus_position is not None and focus_filename is not None:
 
-        image_data[image_path]['position'].append([focus_position])
-        image_data[image_path]['keep'].append([True])
-        image_data[image_path]['filename'].append([focus_filename])
+            image_data[image_path]['position'].append([focus_position])
+            image_data[image_path]['keep'].append([True])
+            image_data[image_path]['filename'].append([focus_filename])
 
-        if not program_args.demo:
+            if not program_args.demo:
 
-            utils.record_grouped_data(
-                image_data=image_data, image_path=image_path,
-                filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
-            )
+                utils.record_grouped_data(
+                    image_data=image_data, image_path=image_path,
+                    filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
+                )
 
-    imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
-    pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
-    return image_data, pct_complete
+        imgs_completed = len([image for group in image_data[image_path]['position'] for image in group])
+        pct_complete = round(100 * imgs_completed / n_images[0]) # Note: n_images is a single-entry list
+        return image_data, pct_complete
+
+    elif mode == 'undo':
+        return image_data, [0]
+
+    else:
+        raise ValueError(f'Unknown mode: {mode}')
 
 
 @app.callback(
