@@ -442,7 +442,6 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
     assert len(all_img_filenames) == len(prev_mask), "Mask should correspond 1-to-1 with filenames in image-container"
     unmasked_img_filenames = [fname for i, fname in enumerate(all_img_filenames) if not prev_mask[i]]
 
-    print(mode)
     if mode == 'complete':
 
         # Extract the image group and their meta data (filename and keep / delete)
@@ -531,13 +530,12 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
 
         # Remove the last entry from each list in the metadata (corresponding to the last group)
         try:
-            image_data[image_path]['position'].pop()
-            image_data[image_path]['keep'].pop()
-            image_data[image_path]['filename'].pop()
+            _ = image_data[image_path]['position'].pop()
+            _ = image_data[image_path]['keep'].pop()
+            filenames_undo = image_data[image_path]['filename'].pop()
 
             if not program_args.demo:
-                # TODO: undo from database, etc.
-                pass
+                utils.undo_last_group(image_data=image_data, image_path=image_path, filename_list=filenames_undo)
 
         # In case the lists are already empty
         except IndexError:
