@@ -143,6 +143,11 @@ app.layout = html.Div(
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Complete image group")
                         ]),
+                        html.Tr([
+                            html.Td("Shift + z"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Undo last group")
+                        ]),
                     ]),
                 ]),
                 dbc.ModalFooter(

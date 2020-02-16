@@ -28,4 +28,7 @@ function clickButtonFunction(event){
   if(event.key == 'C'){
     document.getElementById("complete-group").click();
   }
+  if(event.key == 'Z'){
+    document.getElementById("undo-button").click();
+  }
 }
