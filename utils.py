@@ -240,6 +240,34 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     cnxn.close()
 
 
+def delete_from_database(database_uri, database_table, image_path, filename_list):
+    """
+    Remove data pertaining to a completed group of images to the database (via undo button).
+
+    Args:
+        database_uri = str, of the form accepted by sqlalchemy to create a database connection
+        database_table = str, name of the database table
+        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
+        filename_list = list, of str, image filenames within the group
+
+    Returns: None
+    """
+
+    engine = create_engine(database_uri)
+    cnxn = engine.connect()
+
+    # Calculate the path where the image is backed up to (i.e. raw data)
+    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+
+    delete_query = f'''
+                    DELETE FROM {database_table}
+                    WHERE directory_name=%(directory_name)s
+                    AND filename IN %(filenames)s
+                    '''
+    cnxn.execute(delete_query, {'directory_name': img_backup_path, 'filenames': tuple(filename_list)})
+    cnxn.close()
+
+
 def record_grouped_data(image_data: dict, image_path: str, filename_list: list, keep_list: list, date_taken_list: list):
     """
     Perform a collection of operations that record the choices for a group of images:
@@ -283,6 +311,37 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
     for i, fname in enumerate(filename_list):
         if not keep_list[i]:
             os.remove(os.path.join(image_path, fname))
+
+
+def undo_last_group(image_data: dict, image_path: str, filename_list: list):
+    """
+    Perform a collection of operations that undo the choices for a group of images:
+        1) dump data in a JSON file (overwrites with one less group)
+        2) remove the data from the specified database
+        3) copy the files from the backup back to their original location
+
+    Args:
+        image_data = dict, indexed by str keys referring to the filepath of this set of images, each with three subkeys:
+                     position, keep, filename
+        image_path = str, the filepath to this group of images
+        filename_list = list, of str, the filename of each image in this group (can be found at image_path)
+
+    Returns: None
+
+    Note: this is the inverse operation of record_grouped_data
+    """
+
+    # Save all meta data in JSON format on disk
+    with open(config.META_DATA_FPATH, 'w') as j:
+        json.dump(image_data, j)
+
+    # Save data for the new group in the specified database
+    delete_from_database(config.DATABASE_URI, config.DATABASE_TABLE, image_path, filename_list)
+
+    # Restore the previously discarded images from IMAGE_BACKUP_PATH to their original location
+    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    for i, fname in enumerate(filename_list):
+        copy_image(fname, img_backup_path, image_path, config.IMAGE_TYPES)
 
 
 # Grid tools #
