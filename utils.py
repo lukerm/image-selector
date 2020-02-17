@@ -51,6 +51,8 @@ def copy_image(fname, src_path, dst_path, image_types):
 
     Returns: str, full filepath that the server is expecting
              or None, if not an valid image type (see IMAGE_TYPES)
+
+    WARNING: known bug - when saving via rotation, the image metadata is not preserved!
     """
 
     # Check if it's a valid image (by extension)
@@ -341,7 +343,8 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
     # Restore the previously discarded images from IMAGE_BACKUP_PATH to their original location
     img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
     for i, fname in enumerate(filename_list):
-        copy_image(fname, img_backup_path, image_path, config.IMAGE_TYPES)
+        shutil.copyfile(os.path.join(img_backup_path, fname), os.path.join(image_path, fname))
+        #copy_image(fname, img_backup_path, image_path, config.IMAGE_TYPES)
 
 
 # Grid tools #

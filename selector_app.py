@@ -354,16 +354,19 @@ def load_images(n, dropdown_value, dropdown_opts):
 
             # Copy the image to various location, but only if it is an image!
 
-            # Copy to the TMP_DIR from where the image can be served (roate on the fly if necessary)
+            # Copy to the TMP_DIR from where the image can be served (rotate on the fly if necessary)
+            # Note: if the return value of copy_image is None, then it's not an image file
             static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
                 img_datetime = utils.get_image_taken_date(image_dir, fname)
                 image_date.append(img_datetime)
                 image_list.append(static_image_path)
 
-            # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
-            if not program_args.demo:
-                _ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
+                # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
+                if not program_args.demo:
+                    import shutil
+                    shutil.copyfile(os.path.join(image_dir, fname), os.path.join(IMAGE_BACKUP_PATH, relative_path, fname))
+                    #_ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Sort the image list by date, earliest to latest
         imgs_dates = list(zip(image_list, image_date))
