@@ -398,6 +398,27 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     return new_classes + [zoomed_img]
 
 
+def toggle_group_in_first_n_rows(row, n_cols, image_list, *args):
+
+    new_classes = []
+    cell_last_clicked = (0, 0)
+    for i in range(ROWS_MAX):
+        for j in range(COLS_MAX):
+            previous_class = args[N_GRID + j + i*COLS_MAX]
+            if i <= row and j < n_cols:
+                new_class = ' '.join(class_toggle_grouped(previous_class.split(' ')))
+            else:
+                new_class = previous_class
+            new_classes.append(new_class)
+
+            if 'focus' in previous_class:
+                cell_last_clicked = (i, j)
+
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    return new_classes + [zoomed_img]
+
+
 def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
 
     new_classes = []

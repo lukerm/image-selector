@@ -204,6 +204,13 @@ app.layout = html.Div(
                     ),
                     html.Td([
                         html.Button(
+                            id='select-row-1-button',
+                            children='Select Row 1',
+                            style={'width': '10vw', }
+                        )
+                    ]),
+                    html.Td([
+                        html.Button(
                             id='view-shortcuts',
                             children='View shortcuts',
                             style={'width': '10vw', }
@@ -556,6 +563,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
          Input('move-down', 'n_clicks'),
+         Input('select-row-1-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'data'),
@@ -564,7 +572,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_data, image_path, *args):
+def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_row1, n_keep, n_delete, image_list, image_data, image_path, *args):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -581,6 +589,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         n_right = int, number of clicks on the 'move-right' button (indicates shifting)
         n_up = int, number of clicks on the 'move-up' button (indicates shifting)
         n_down = int, number of clicks on the 'move-down' button (indicates shifting)
+        n_row1 = int, number of clicks on the 'select row 1' button (indicates ?)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         image_list = list, of str, specifying where the image files are stored
@@ -627,6 +636,10 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
         return utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+
+    # Toggle the grouping state of all cells in the first rows of the grid
+    elif 'select-row-' in button_id:
+        return utils.toggle_group_in_first_n_rows(0, n_cols, image_list, *args)
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
