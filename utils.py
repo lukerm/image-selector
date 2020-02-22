@@ -406,7 +406,7 @@ def toggle_group_in_first_n_rows(row, n_cols, image_list, *args):
         for j in range(COLS_MAX):
             previous_class = args[N_GRID + j + i*COLS_MAX]
             if i <= row and j < n_cols:
-                new_class = ' '.join(class_toggle_grouped(previous_class.split(' ')))
+                new_class = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
             else:
                 new_class = previous_class
             new_classes.append(new_class)
