@@ -144,6 +144,16 @@ app.layout = html.Div(
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Complete image group")
                         ]),
+                        html.Tr([
+                            html.Td("0 / Shift + a"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Select all grid cells")
+                        ]),
+                        html.Tr([
+                            html.Td("1, ..., N, ..., 9"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Select grid cells in first N rows")
+                        ]),
                     ]),
                 ]),
                 dbc.ModalFooter(
