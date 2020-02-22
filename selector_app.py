@@ -204,13 +204,6 @@ app.layout = html.Div(
                     ),
                     html.Td([
                         html.Button(
-                            id='select-row-1-button',
-                            children='Select Row 1',
-                            style={'width': '10vw', }
-                        )
-                    ]),
-                    html.Td([
-                        html.Button(
                             id='view-shortcuts',
                             children='View shortcuts',
                             style={'width': '10vw', }
@@ -254,6 +247,16 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
+        # Hidden buttons (for shortcuts)
+        html.Div([
+            html.Td([
+                html.Button(
+                    id='select-row-upto-1-button',
+                    children='Select Row 1',
+                    style={'width': '10vw', }
+                )
+            ]),
+        ], style={'display': 'none'}),
         # Store the number of images
         dcc.Store(id='n_images', data=[24]),
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
@@ -563,7 +566,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
          Input('move-down', 'n_clicks'),
-         Input('select-row-1-button', 'n_clicks'),
+         Input('select-row-upto-1-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'data'),
@@ -638,7 +641,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_r
         return utils.image_cell_pressed(button_id, n_cols, image_list, *args)
 
     # Toggle the grouping state of all cells in the first rows of the grid
-    elif 'select-row-' in button_id:
+    elif 'select-row-upto-' in button_id:
         return utils.toggle_group_in_first_n_rows(0, n_cols, image_list, *args)
 
     # Harder case: move focus in a particular direction

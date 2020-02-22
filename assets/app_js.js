@@ -28,4 +28,7 @@ function clickButtonFunction(event){
   if(event.key == 'C'){
     document.getElementById("complete-group").click();
   }
+  if(event.key == '1'){
+    document.getElementById("select-row-upto-1-button").click();
+  }
 }
