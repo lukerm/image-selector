@@ -96,8 +96,6 @@ ALL_TD_ID_OUTPUTS = [Output(f'grid-td-{i}-{j}', 'className') for i in range(ROWS
 ALL_BUTTONS_IDS = [Input(f'grid-button-{i}-{j}', 'n_clicks') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_MAX) for j in range(COLS_MAX)]
 
-## Local variables
-cell_last_clicked = None  # can be movoed to Store
 
 ## Main ##
 
@@ -262,6 +260,8 @@ app.layout = html.Div(
         # For storing the image path WHEN THE confirm-load-directory IS CLICKED (the label in choose-image-path may
         # change without their being a new upload, so we need to record this value)
         dcc.Store(id='loaded-image-path', data=['__ignore'], storage_type='session'),
+        # store the last cell with focus
+        dcc.Store(id='cell_last_clicked', data=None, storage_type='session'),
     ]
 )
 
@@ -537,8 +537,8 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     Returns: html.Div element (containing the grid of images) that can update the responsive-image-grid element
     """
     # reset last clicked image
-    global cell_last_clicked
-    cell_last_clicked = None
+    # global cell_last_clicked
+    # cell_last_clicked = None
 
     image_path = image_path[0]
     # If it doesn't already exist, add an entry (dict) for this image path into the data dictionary
@@ -553,7 +553,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
 
 
 @app.callback(
-    ALL_TD_ID_OUTPUTS + [Output('zoomed-image', 'children')],
+    ALL_TD_ID_OUTPUTS + [Output('zoomed-image', 'children'), Output('cell_last_clicked', 'data')],
     [
          Input('choose-grid-size', 'value'),
          Input('choose-grid-size', 'value'),
@@ -567,7 +567,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('image-meta-data', 'data'),
          Input('loaded-image-path', 'data'),
     ] + ALL_BUTTONS_IDS,
-    ALL_TD_ID_STATES
+    ALL_TD_ID_STATES + [State('cell_last_clicked', 'data')]
 )
 def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_data, image_path, *args):
     """
@@ -604,8 +604,6 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         args[N_GRID:] are States (Tds)
     """
 
-    global cell_last_clicked
-
     # Unpack the single-element list
     image_path = image_path[0]
     if image_path not in image_data:
@@ -618,9 +616,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-        zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM)
-        return class_names + [zoomed_img]
+        return utils.resize_grid_pressed(image_list)
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -633,31 +629,13 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        import time
-        start = time.time()
-        # current_classes_img = utils.image_cell_pressed(button_id, n_cols, image_list, *args)
-
-        # print((time.time() - start) * 10000)
-        # return current_classes_img
-
-        current_classes_img, zoomed_img, cell_last_clicked = utils.image_cell_pressed_speed_up(button_id, n_cols, image_list, cell_last_clicked, *args)
-        
-        print((time.time() - start) * 10000)
-
-        return current_classes_img + [zoomed_img]
+        current_classes_img, zoomed_img, cell_last_clicked = utils.image_cell_pressed_speed_up(button_id, n_cols, image_list, *args)
+        return current_classes_img + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        import time
-        start = time.time()
-        # current_classes_img = utils.direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
-        # print((time.time() - start) * 10000)
-        # return current_classes_img
-        current_classes_img, zoomed_img, cell_last_clicked = utils.direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list, cell_last_clicked, *args)
-         
-        print((time.time() - start) * 10000)
-
-        return current_classes_img + [zoomed_img]
+        current_classes_img, zoomed_img, cell_last_clicked = utils.direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list, *args)
+        return current_classes_img + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
         return utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)

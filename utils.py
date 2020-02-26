@@ -341,7 +341,7 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
 def resize_grid_pressed(image_list):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
     zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
-    return class_names + [zoomed_img]
+    return class_names + [zoomed_img, [0,0]]
 
 
 def image_cell_pressed(button_id, n_cols, image_list, *args):
@@ -397,7 +397,8 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return new_classes + [zoomed_img]
 
-def image_cell_pressed_speed_up(button_id, n_cols, image_list, cell_last_clicked, *args):
+def image_cell_pressed_speed_up(button_id, n_cols, image_list, *args):
+    cell_last_clicked = args[-1]
     # Grid location of the pressed button
     # cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
     cell_loc = list(map(int, re.findall('[0-9]+', button_id)))
@@ -405,7 +406,7 @@ def image_cell_pressed_speed_up(button_id, n_cols, image_list, cell_last_clicked
     # Class name of the pressed button
     previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
     previous_class_clicked = previous_class_clicked.split(' ')
-    new_classes = list(args[N_GRID:])
+    new_classes = list(args[N_GRID:-1])
     if new_classes:
         i, j = cell_loc
         idx = i * COLS_MAX + j
@@ -530,9 +531,10 @@ def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
     return new_classes + [zoomed_img]
 
 
-def direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list,cell_last_clicked, *args):
-
-    new_classes = list(args[N_GRID:])
+def direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list, *args):
+    cell_last_clicked = args[-1]
+    print(button_id, cell_last_clicked)
+    new_classes = list(args[N_GRID:-1])
     if new_classes:
         if not cell_last_clicked:
             cell_last_clicked = [0,0]
@@ -543,7 +545,7 @@ def direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list,cell_la
         # Move focus away from the cell with it
         if 'focus' in my_class:
             new_classes[idx] = ' '.join(class_toggle_focus(my_class.split(' ')))
-
+        print(new_classes[idx])
         new_i, new_j = i, j
         if button_id == 'move-left':
             new_i, new_j = i, (j-1) % n_cols
