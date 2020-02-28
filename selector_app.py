@@ -629,16 +629,17 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        current_classes_img, zoomed_img, cell_last_clicked = utils.image_cell_pressed_speed_up(button_id, n_cols, image_list, *args)
-        return current_classes_img + [zoomed_img, cell_last_clicked]
+        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed_speed_up(button_id, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        current_classes_img, zoomed_img, cell_last_clicked = utils.direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list, *args)
-        return current_classes_img + [zoomed_img, cell_last_clicked]
+        current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed_speed_up(button_id, n_rows, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
-        return utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed_speed_up(button_id, n_rows, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     else:
         raise ValueError('Unrecognized button ID: %s' % str(button_id))
