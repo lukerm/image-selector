@@ -345,9 +345,10 @@ def resize_grid_pressed(image_list):
 
 
 def image_cell_pressed(button_id, n_cols, image_list, *args):
+    # Get the last clicked cell from args
     cell_last_clicked = args[-1]
+    
     # Grid location of the pressed button
-    # cell_loc = [int(i) for i in re.findall('[0-9]+', button_id)]
     cell_loc = list(map(int, re.findall('[0-9]+', button_id)))
 
     # Class name of the pressed button
@@ -391,7 +392,10 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
 
 
 def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
+    # Get the last clicked cell from args
     cell_last_clicked = args[-1]
+
+    # Get the classes from args and only change the value of the affected cell
     new_classes = list(args[N_GRID:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
@@ -435,9 +439,6 @@ def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
     i, j = cell_last_clicked
     idx = i * COLS_MAX + j
     my_class = new_classes[idx]
-
-    # if 'focus' in my_class:
-    #     cell_last_clicked = [i, j]
 
     # It must be in the group to be kept or deleted
     if 'focus' in my_class and 'grouped-on' in my_class:

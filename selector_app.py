@@ -594,8 +594,9 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
 
         *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
-            1) args[N_GRID:] are States (indicating state of the grid-Tds)
+            1) args[N_GRID:-1] are States (indicating state of the grid-Tds)
             Both are in row-major order (for i in rows: for j in cols: ... )
+            2) args[-1] is a tuple representing the last clicked cell
 
     Returns: a list of new classNames for all the grid cells (plus one extra element for the Image that was last clicked)
 
