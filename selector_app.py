@@ -29,9 +29,6 @@ Additionally, one cell can have the special 'focus' class (currently blue border
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
-Note: there is a known bug when no cell has the focus and the user tries to 'complete the group' (causes error message
-      but does not crash the program.)
-
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
 or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
 an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
