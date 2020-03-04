@@ -58,6 +58,7 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 ## Imports ##
 
+import re
 import os
 import argparse
 
@@ -142,6 +143,16 @@ app.layout = html.Div(
                             html.Td("Shift + c"),
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Complete image group")
+                        ]),
+                        html.Tr([
+                            html.Td("0 / Shift + a"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Select all grid cells")
+                        ]),
+                        html.Tr([
+                            html.Td("1, ..., N, ..., 9"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Select grid cells in first N rows")
                         ]),
                     ]),
                 ]),
@@ -247,6 +258,70 @@ app.layout = html.Div(
                 ]),
             ]),
         ]),
+        # Hidden buttons (for shortcuts)
+        html.Div([
+            html.Td([
+                html.Button(
+                    id='select-row-upto-1-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-2-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-3-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-4-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-5-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-6-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-7-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-8-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            html.Td([
+                html.Button(
+                    id='select-row-upto-9-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+            # This is basically for selecting all rows
+            html.Td([
+                html.Button(
+                    id='select-row-upto-1000-button',
+                    style={'width': '10vw', }
+                )
+            ]),
+        ], style={'display': 'none'}),
         # Store the number of images
         dcc.Store(id='n_images', data=[24]),
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
@@ -556,6 +631,16 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('move-right', 'n_clicks'),
          Input('move-up', 'n_clicks'),
          Input('move-down', 'n_clicks'),
+         Input('select-row-upto-1-button', 'n_clicks'),
+         Input('select-row-upto-2-button', 'n_clicks'),
+         Input('select-row-upto-3-button', 'n_clicks'),
+         Input('select-row-upto-4-button', 'n_clicks'),
+         Input('select-row-upto-5-button', 'n_clicks'),
+         Input('select-row-upto-6-button', 'n_clicks'),
+         Input('select-row-upto-7-button', 'n_clicks'),
+         Input('select-row-upto-8-button', 'n_clicks'),
+         Input('select-row-upto-9-button', 'n_clicks'),
+         Input('select-row-upto-1000-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'data'),
@@ -564,7 +649,13 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     ] + ALL_BUTTONS_IDS,
     ALL_TD_ID_STATES
 )
-def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_keep, n_delete, image_list, image_data, image_path, *args):
+def activate_deactivate_cells(
+        n_rows, n_cols,
+        n_left, n_right, n_up, n_down,
+        n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
+        n_keep, n_delete,
+        image_list, image_data, image_path, *args
+    ):
     """
     Global callback function for toggling classes. There are three toggle modes:
         1) Pressing a grid cell will toggle its state
@@ -581,6 +672,7 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         n_right = int, number of clicks on the 'move-right' button (indicates shifting)
         n_up = int, number of clicks on the 'move-up' button (indicates shifting)
         n_down = int, number of clicks on the 'move-down' button (indicates shifting)
+        n_row1,..9,1000 = int, number of clicks on the 'select row *' button (indicates shortcut to select many rows)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         image_list = list, of str, specifying where the image files are stored
@@ -627,6 +719,11 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
         return utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+
+    # Toggle the grouping state of all cells in the first rows of the grid
+    elif 'select-row-upto-' in button_id:
+        n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
+        return utils.toggle_group_in_first_n_rows(n_rows-1, n_cols, image_list, *args)
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
