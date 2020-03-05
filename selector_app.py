@@ -141,7 +141,7 @@ app.layout = html.Div(
                         html.Tr([
                             html.Td("Shift + c"),
                             html.Td("\t\t\t\t\t\t"),
-                            html.Td("Complete image group")
+                            html.Td("Complete (save) image group")
                         ]),
                         html.Tr([
                             html.Td("Shift + z"),
@@ -186,7 +186,7 @@ app.layout = html.Div(
                             id='choose-grid-size',
                             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
                             value=2,
-                            style={'width': '10vw',}
+                            style={'width': '9.8vw',}
                         ),
                     ),
                 ]),
@@ -196,36 +196,36 @@ app.layout = html.Div(
                     html.Td(
                         html.Button(
                             id='confirm-load-directory',
-                            children='Load directory',
-                            style={'width': '10vw', }
+                            children='Load images',
+                            style={'width': '8vw', }
                         ),
                     ),
                     html.Td(
                         html.Button(
                             id='complete-group',
-                            children='Complete group',
-                            style={'width': '10vw', }
+                            children='Save group',
+                            style={'width': '8vw', }
                         )
                     ),
                     html.Td(
                         html.Button(
                             id='undo-button',
                             children='Undo',
-                            style={'width': '10vw', }
+                            style={'width': '8vw', }
                         )
                     ),
                     html.Td([
                         html.Button(
                             id='view-shortcuts',
-                            children='View shortcuts',
-                            style={'width': '10vw', }
+                            children='Shortcuts',
+                            style={'width': '8vw', }
                         )
                     ]),
                     html.Td([
                         html.Div([dbc.Progress(
                             id='progress_bar',
                             value=0,
-                            style={'width': '20vw', }
+                            style={'width': '17.2vw', }
                         )])
                     ]),
                 ]),
