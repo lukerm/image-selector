@@ -45,8 +45,6 @@ and new ones will appear. In the background, several things happen: 1) the meta 
 for deletion ARE DELETED from the load folder (but not the backup folder). The main point of this program is to delete
 bad duplicated images.
 
-TODO: create an undo button that reverses the complete group operation.
-
 Continue until ALL the images in that directory have been grouped and annotated before selecing and loading a new one.
 """
 
