@@ -56,8 +56,9 @@ Continue until ALL the images in that directory have been grouped and annotated 
 
 ## Imports ##
 
-import os
 import argparse
+import os
+import shutil
 
 from datetime import date
 
@@ -362,7 +363,6 @@ def load_images(n, dropdown_value, dropdown_opts):
 
                 # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
                 if not program_args.demo:
-                    import shutil
                     shutil.copyfile(os.path.join(image_dir, fname), os.path.join(IMAGE_BACKUP_PATH, relative_path, fname))
                     #_ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
