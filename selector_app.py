@@ -7,8 +7,8 @@ need only click on one image, then 'Open'. (Alternatively, drag and drop an imag
 box.) Due to a technicality, you must select the correct directory from the dropdown menu, then click 'Load directory'.
 This will load all valid image files from that directory (but not subdirectories). Images that fit into the left-hand
 grid will be displayed immediately, but ALL images will be loaded in the background. In addition, the images will be
-backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data) and to directly into /tmp/ (for serving). Images are ordered
-by the time they were taken.
+backed up to a subfolder in IMAGE_BACKUP_PATH (as raw data, see config) and to directly into /tmp/ (for serving).
+Images are ordered by the time they were taken (those without those metadata come last).
 
 Note: it is assumed that your images are stored under ~/Pictures (aka $HOME/Pictures for Unix-based systems).
 
@@ -21,8 +21,8 @@ The left-hand side is a re-sizable grid of images: choose the size from the drop
 
 Each grid cell (td element) will have exactly one class name in {'grouped-off', 'grouped-on'}. There can be multiple cells
 with grouped-on and it currently draws a red square around it. Together, the cells with a red border represent a group
-of images. Those with the 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
-A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it (It
+of images. Those that are 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
+A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it. (It
 must be on the image itself.) You can remove an image from a group by double clicking on it.
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
@@ -32,7 +32,7 @@ have it) or by moving the current highlighted cell around with the directional b
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
 or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
 an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
-saving; and backspace or 'd' key for deletion.
+saving; and backspace or 'd' key for deletion. (Click the Shortcuts button to see all available.)
 
 Once you've marked all the grouped images up for keeping or deleting, check you're happy with the labels, then finalize
 your choices by clicking 'Complete group'. There is currently no shortcut key for this operation. You must have marked
@@ -41,6 +41,10 @@ and new ones will appear. In the background, several things happen: 1) the meta 
 (and saved to a json file); 2) the meta data are inserted into the database and 3) most importantly, the images marked
 for deletion ARE DELETED from the load folder (but not the backup folder). The main point of this program is to delete
 bad duplicated images.
+
+There is an Undo button that will reverse your last completed group, by restoring the images on the grid and your local
+file system, and removing the grouped data from the database (if applicable). You can undo as many grouping operations
+as you like.
 
 Continue until ALL the images in that directory have been grouped and annotated before selecing and loading a new one.
 """
