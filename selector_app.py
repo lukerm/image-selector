@@ -29,9 +29,6 @@ Additionally, one cell can have the special 'focus' class (currently blue border
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
-Note: there is a known bug when no cell has the focus and the user tries to 'complete the group' (causes error message
-      but does not crash the program.)
-
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
 or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
 an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
@@ -346,6 +343,8 @@ app.layout = html.Div(
         # For storing the image path WHEN THE confirm-load-directory IS CLICKED (the label in choose-image-path may
         # change without their being a new upload, so we need to record this value)
         dcc.Store(id='loaded-image-path', data=['__ignore'], storage_type='session'),
+        # store the last cell with focus
+        dcc.Store(id='cell_last_clicked', data=None, storage_type='session'),
     ]
 )
 
@@ -667,7 +666,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
 
 
 @app.callback(
-    ALL_TD_ID_OUTPUTS + [Output('zoomed-image', 'children')],
+    ALL_TD_ID_OUTPUTS + [Output('zoomed-image', 'children'), Output('cell_last_clicked', 'data')],
     [
          Input('choose-grid-size', 'value'),
          Input('choose-grid-size', 'value'),
@@ -691,7 +690,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('image-meta-data', 'data'),
          Input('loaded-image-path', 'data'),
     ] + ALL_BUTTONS_IDS,
-    ALL_TD_ID_STATES
+    ALL_TD_ID_STATES + [State('cell_last_clicked', 'data')]
 )
 def activate_deactivate_cells(
         n_rows, n_cols,
@@ -723,16 +722,15 @@ def activate_deactivate_cells(
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
         image_path = str, the filepath where the images in image-container were loaded from
 
-        *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
+        *args = positional arguments split into about two equal halves (actually length 2 x N_GRID + 1):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
-            1) args[N_GRID:] are States (indicating state of the grid-Tds)
+            1) args[N_GRID:-1] are States (indicating state of the grid-Tds)
             Both are in row-major order (for i in rows: for j in cols: ... )
+            2) args[-1] is a tuple representing the last clicked cell
 
-    Returns: a list of new classNames for all the grid cells (plus one extra element for the Image that was last clicked)
-
-    Note: args split into two halves:
-        args[:N_GRID] are Inputs (Buttons)
-        args[N_GRID:] are States (Tds)
+    Returns: a list of new classNames for all the grid cells plus
+              - one extra element for the Image that was last clicked (zoomed image)
+              - one extra element representing the cell that was last clicked (in focus)
     """
 
     # Unpack the single-element list
@@ -747,9 +745,7 @@ def activate_deactivate_cells(
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-        zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM)
-        return class_names + [zoomed_img]
+        return utils.resize_grid_pressed(image_list)
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -762,19 +758,23 @@ def activate_deactivate_cells(
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        return utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     # Toggle the grouping state of all cells in the first rows of the grid
     elif 'select-row-upto-' in button_id:
         n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
-        return utils.toggle_group_in_first_n_rows(n_rows-1, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(n_rows, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        return utils.direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
-        return utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
+        return current_classes + [zoomed_img, cell_last_clicked]
 
     else:
         raise ValueError('Unrecognized button ID: %s' % str(button_id))
