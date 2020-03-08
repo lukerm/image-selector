@@ -410,7 +410,7 @@ def resize_grid_pressed(image_list):
 def image_cell_pressed(button_id, n_cols, image_list, *args):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
-    
+
     # Grid location of the pressed button
     cell_loc = list(map(int, re.findall('[0-9]+', button_id)))
 
@@ -456,25 +456,20 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
 
 def toggle_group_in_first_n_rows(row, n_cols, image_list, *args):
 
-    new_classes = []
-    cell_last_clicked = (0, 0)
-    for i in range(ROWS_MAX):
-        for j in range(COLS_MAX):
-            previous_class = args[N_GRID + j + i*COLS_MAX]
-            # Toggle images grouped status if it's in the first row rows
-            if i <= row and j < n_cols:
-                new_class = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
-            else:
-                new_class = previous_class
-            new_classes.append(new_class)
+    cell_last_clicked = args[-1]
+    if not cell_last_clicked:
+        cell_last_clicked = [0,0]
 
-            # Keep note of the previously zoomed image
-            if 'focus' in previous_class:
-                cell_last_clicked = (i, j)
+    new_classes = list(args[N_GRID:-1])
+    for i in range(min(row, ROWS_MAX)):
+        for j in range(n_cols):
+            cell_list_idx = j + i*COLS_MAX
+            previous_class = new_classes[cell_list_idx]
+            new_classes[cell_list_idx] = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
     zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
-    return new_classes + [zoomed_img]
+    return new_classes, zoomed_img, cell_last_clicked
 
 
 def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
