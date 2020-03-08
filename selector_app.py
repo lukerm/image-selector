@@ -533,9 +533,6 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
 
     Returns: html.Div element (containing the grid of images) that can update the responsive-image-grid element
     """
-    # reset last clicked image
-    # global cell_last_clicked
-    # cell_last_clicked = None
 
     image_path = image_path[0]
     # If it doesn't already exist, add an entry (dict) for this image path into the data dictionary
@@ -589,17 +586,15 @@ def activate_deactivate_cells(n_rows, n_cols, n_left, n_right, n_up, n_down, n_k
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
         image_path = str, the filepath where the images in image-container were loaded from
 
-        *args = positional arguments split into two equal halves (i.e. of length 2 x N_GRID):
+        *args = positional arguments split into about two equal halves (actually length 2 x N_GRID + 1):
             0) args[:N_GRID] are Inputs (activated by the grid-Buttons)
             1) args[N_GRID:-1] are States (indicating state of the grid-Tds)
             Both are in row-major order (for i in rows: for j in cols: ... )
             2) args[-1] is a tuple representing the last clicked cell
 
-    Returns: a list of new classNames for all the grid cells (plus one extra element for the Image that was last clicked)
-
-    Note: args split into two halves:
-        args[:N_GRID] are Inputs (Buttons)
-        args[N_GRID:] are States (Tds)
+    Returns: a list of new classNames for all the grid cells plus
+              - one extra element for the Image that was last clicked (zoomed image)
+              - one extra element representing the cell that was last clicked (in focus)
     """
 
     # Unpack the single-element list
