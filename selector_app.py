@@ -808,4 +808,4 @@ if __name__ == '__main__':
     global program_args
     program_args = parser.parse_args()
 
-    app.run_server(debug=True)
+    app.run_server(debug=False)
