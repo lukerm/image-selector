@@ -606,6 +606,9 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                     filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
                 )
 
+        else:
+            raise PreventUpdate
+
         # Note: n_images is a single-entry list
         pct_complete = utils.calc_percentage_complete(image_data[image_path]['position'], n_images[0])
         return image_data, pct_complete
