@@ -9,10 +9,14 @@ First, select the folder that contains the images you want to edit. Confirm that
 are many images or they are very high resolution.
 
 select which images belong together by clicking on them. Afterwards, go back through the group choosing the best ones (the s key will save them, indicated by a green border) and the ones
-which really must go (the d key will delete them, indicated by a red border). Once you've made a choice for _every_ photo in that group, click "Save group". Repeat until you have filtered
-down every group in the loaded image directory.
+which really must go (the d key will delete them, indicated by a red border). Once you've made a choice for _every_ photo in that group, click "Save group" (or Shft+C to complete it). 
+Click "Shortcuts" to see a list of all available shortcuts. 
 
 
+Repeat until you have filtered down every group in the loaded image directory.
+
+Note: if you click "Save group" / Shft+C when there are no photos selected, it will _save_ the in-focus image as a single-entity group. I found this quite a handy shortcut when I work
+through my photos.
 
 
 App is only meant to work locally, as it can perform copy / delete operations on your machine!
