@@ -16,7 +16,8 @@ Click "Shortcuts" to see a list of all available shortcuts.
 
 Repeat until you have filtered down every group in the loaded image directory.
 
-Note: if you click "Save group" / Shft+C when there are no photos selected, it will _save_ the in-focus image as a single-entity group. I found this quite a handy shortcut when I work
+Note: it is important to realise that photos you choose to delete in the app really will be deleted from the folder you are editing. They can, however, be restored from the back up
+directory `$HOME/Pictures/_deduplicate_backup/`.
 through my photos.
 
 
