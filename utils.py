@@ -132,6 +132,24 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
         return None
 
 
+def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -> List[str]:
+    """
+    Sort images by time taken (ascending, i.e. earliest to latest).
+
+    :param image_filepaths: list, of str, full filepaths to the unsorted images
+    :param image_dir: str, image directory to look in first (None => filepath supplied with image_filepaths will be used)
+    :return: list, of str, the images sorted by their date taken
+    """
+    image_datetimes = []
+    for fullpath in image_filepaths:
+        my_dir, filname = os.path.split(fullpath)
+        image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filname))
+
+    zip_fname_dt = list(zip(image_filepaths, image_datetimes))
+    zip_fname_dt_sorted = sorted(zip_fname_dt, key=lambda x: x[1])
+    return [img for img, _ in zip_fname_dt_sorted]
+
+
 def get_image_rotation(image_dir, fname):
     """
     Calculate how much to rotate the image from the encoded orientation value (if available).

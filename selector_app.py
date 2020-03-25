@@ -435,8 +435,6 @@ def load_images(n, dropdown_value, dropdown_opts):
             # Note: if the return value of copy_image is None, then it's not an image file
             static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
             if static_image_path is not None:
-                img_datetime = utils.get_image_taken_date(image_dir, fname)
-                image_date.append(img_datetime)
                 image_list.append(static_image_path)
 
                 # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
@@ -445,9 +443,7 @@ def load_images(n, dropdown_value, dropdown_opts):
                     #_ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Sort the image list by date, earliest to latest
-        imgs_dates = list(zip(image_list, image_date))
-        imgs_dates_sorted = sorted(imgs_dates, key=lambda x: x[1])
-        image_list = [img for img, _ in imgs_dates_sorted]
+        image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
