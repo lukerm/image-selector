@@ -763,7 +763,7 @@ def activate_deactivate_cells(
     elif 'grid-button-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
             button_id=button_id,
-            n_cols=n_cols, cols_max=COLS_MAX,
+            n_cols=n_cols, cols_max=COLS_MAX, n_grid=ROWS_MAX*COLS_MAX,
             image_list=image_list,
             *args
         )
