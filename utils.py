@@ -142,8 +142,8 @@ def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -
     """
     image_datetimes = []
     for fullpath in image_filepaths:
-        my_dir, filname = os.path.split(fullpath)
-        image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filname))
+        my_dir, filename = os.path.split(fullpath)
+        image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filename))
 
     zip_fname_dt = list(zip(image_filepaths, image_datetimes))
     zip_fname_dt_sorted = sorted(zip_fname_dt, key=lambda x: x[1])
