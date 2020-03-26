@@ -277,7 +277,16 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
     cnxn.close()
 
 
-def record_grouped_data(image_data: dict, image_path: str, filename_list: list, keep_list: list, date_taken_list: list):
+def record_grouped_data(
+        image_data: dict,
+        image_path: str,
+        filename_list: list,
+        keep_list: list,
+        date_taken_list: list,
+        meta_data_fpath: str,
+        database_uri: str,
+        database_table: str,
+    ):
     """
     Perform a collection of operations that record the choices for a group of images:
         1) dump data in a JSON file,
@@ -295,6 +304,9 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
                     Note: order corresponds to filenames list
         date_taken_list = list, of datetime.datetime, when the image was taken
                           Note: order corresponds to filenames list
+        meta_data_fpath = str, a full filepath of where to dump session metadata as JSON (see config.py)
+        database_uri = str, address to database according to SQLAlchemy (see config.py)
+        database_table = str, table name in which to store the image group data (see config.py)
 
     Returns: None
 
@@ -303,17 +315,17 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
     """
 
     # Save all meta data in JSON format on disk
-    with open(config.META_DATA_FPATH, 'w') as j:
+    with open(meta_data_fpath, 'w') as j:
         json.dump(image_data, j)
 
     # Save data for the new group in the specified database
     send_to_database(
-            config.DATABASE_URI,
-            config.DATABASE_TABLE,
-            image_path,
-            filename_list,
-            keep_list,
-            date_taken_list,
+            database_uri=database_uri,
+            database_table=database_table,
+            image_path=image_path,
+            filename_list=filename_list,
+            keep_list=keep_list,
+            date_taken_list=date_taken_list,
     )
 
     # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH (see config.py))
@@ -322,7 +334,15 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
             os.remove(os.path.join(image_path, fname))
 
 
-def undo_last_group(image_data: dict, image_path: str, filename_list: list, image_backup_path: str):
+def undo_last_group(
+        image_data: dict,
+        image_path: str,
+        filename_list: list,
+        image_backup_path: str,
+        meta_data_fpath: str,
+        database_uri: str,
+        database_table: str,
+    ):
     """
     Perform a collection of operations that undo the choices for a group of images:
         1) dump data in a JSON file (overwrites with one less group)
@@ -335,6 +355,9 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list, imag
         image_path = str, the filepath to this group of images
         filename_list = list, of str, the filename of each image in this group (can be found at image_path)
         image_backup_path = str, the filepath to the root folder where all image files will be backed up to
+        meta_data_fpath = str, a full filepath of where to dump session metadata as JSON (see config.py)
+        database_uri = str, address to database according to SQLAlchemy (see config.py)
+        database_table = str, table name in which to store the image group data (see config.py)
 
     Returns: None
 
@@ -342,11 +365,16 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list, imag
     """
 
     # Save all meta data in JSON format on disk
-    with open(config.META_DATA_FPATH, 'w') as j:
+    with open(meta_data_fpath, 'w') as j:
         json.dump(image_data, j)
 
     # Save data for the new group in the specified database
-    delete_from_database(config.DATABASE_URI, config.DATABASE_TABLE, image_path, filename_list)
+    delete_from_database(
+        database_uri=database_uri,
+        database_table=database_table,
+        image_path=image_path,
+        filename_list=filename_list
+    )
 
     # Restore the previously discarded images from image_backup_path to their original location
     img_backup_path, _ = get_backup_path(image_path, image_backup_path)
