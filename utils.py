@@ -145,9 +145,8 @@ def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -
         my_dir, filename = os.path.split(fullpath)
         image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filename))
 
-    zip_fname_dt = list(zip(image_filepaths, image_datetimes))
-    zip_fname_dt_sorted = sorted(zip_fname_dt, key=lambda x: x[1])
-    return [img for img, _ in zip_fname_dt_sorted]
+    sorted_images = [img for img, _ in sorted(list(zip(image_filepaths, image_datetimes)), key=lambda x: x[1])]
+    return sorted_images
 
 
 def get_image_rotation(image_dir, fname):
