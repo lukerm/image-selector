@@ -26,8 +26,6 @@ import config
 
 ## Constants ##
 
-N_GRID = config.N_GRID
-
 IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 EMPTY_IMAGE = config.EMPTY_IMAGE
 
