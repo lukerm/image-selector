@@ -767,7 +767,12 @@ def activate_deactivate_cells(
     # Toggle the grouping state of all cells in the first rows of the grid
     elif 'select-row-upto-' in button_id:
         n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
-        current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(
+            row=n_rows, n_cols=n_cols,
+            rows_max=ROWS_MAX, cols_max=COLS_MAX,
+            image_list=image_list,
+            *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction

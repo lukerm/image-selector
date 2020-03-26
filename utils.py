@@ -479,16 +479,16 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     return new_classes,zoomed_img, cell_last_clicked
 
 
-def toggle_group_in_first_n_rows(row, n_cols, image_list, *args):
+def toggle_group_in_first_n_rows(row: int, n_cols: int, rows_max: int, cols_max: int, image_list: List[html.Img], *args):
 
     cell_last_clicked = args[-1]
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
 
     new_classes = list(args[N_GRID:-1])
-    for i in range(min(row, ROWS_MAX)):
+    for i in range(min(row, rows_max)):
         for j in range(n_cols):
-            cell_list_idx = j + i*COLS_MAX
+            cell_list_idx = j + i*cols_max
             previous_class = new_classes[cell_list_idx]
             new_classes[cell_list_idx] = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
 
