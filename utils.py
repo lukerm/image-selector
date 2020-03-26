@@ -20,12 +20,12 @@ import pandas as pd
 
 import dash_html_components as html
 
+# TODO: remove reliance on config
 import config
 
 
 ## Constants ##
 
-STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
@@ -39,7 +39,7 @@ EMPTY_IMAGE = config.EMPTY_IMAGE
 
 # File manipulations #
 
-def copy_image(fname, src_path, dst_path, image_types):
+def copy_image(fname, src_path, dst_path, image_types, static_image_route='/'):
     """
     Perform a copy of the file if it is an image. It will be copied to dst_path.
 
@@ -48,6 +48,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         src_path = str, directory of where to copy from (no filename)
         dst_path = str, directory of where to copy to (no filename)
         image_types = list, of str, valid extensions of image files (e.g. .jpg)
+        static_image_route = str, the path where the static images will be served from
 
     Returns: str, full filepath that the server is expecting
              or None, if not an valid image type (see IMAGE_TYPES)
@@ -78,7 +79,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         pil_image.rotate(rotate_degrees, expand=1).save(os.path.join(dst_path, fname))
 
     # Append the Img object with the static path
-    static_image_path = os.path.join(STATIC_IMAGE_ROUTE, fname)
+    static_image_path = os.path.join(static_image_route, fname)
 
     return static_image_path
 

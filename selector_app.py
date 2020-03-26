@@ -432,7 +432,7 @@ def load_images(n, dropdown_value, dropdown_opts):
 
             # Copy to the TMP_DIR from where the image can be served (rotate on the fly if necessary)
             # Note: if the return value of copy_image is None, then it's not an image file
-            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
+            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES, config.STATIC_IMAGE_ROUTE)
             if static_image_path is not None:
                 image_list.append(static_image_path)
 
