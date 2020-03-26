@@ -426,8 +426,8 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def resize_grid_pressed(image_list):
-    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
+def resize_grid_pressed(image_list, rows_max: int, cols_max: int):
+    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
     zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
     return class_names + [zoomed_img, [0,0]]
 
