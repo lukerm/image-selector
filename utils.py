@@ -535,10 +535,10 @@ def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: in
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def keep_delete_pressed(button_id: str, n_cols: int, cols_max: int, image_list: List[html.Img], *args):
+def keep_delete_pressed(button_id: str, n_cols: int, cols_max: int, n_grid: int, image_list: List[html.Img], *args):
 
     cell_last_clicked = args[-1]
-    new_classes = list(args[N_GRID:-1])
+    new_classes = list(args[n_grid:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
     i, j = cell_last_clicked
