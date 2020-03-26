@@ -27,7 +27,6 @@ import config
 ## Constants ##
 
 IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
-EMPTY_IMAGE = config.EMPTY_IMAGE
 
 
 ## Functions ##
@@ -422,13 +421,18 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def resize_grid_pressed(image_list, rows_max: int, cols_max: int):
+def resize_grid_pressed(image_list, rows_max: int, cols_max: int, empty_image: html.Img):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
-    zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else empty_image
     return class_names + [zoomed_img, [0,0]]
 
 
-def image_cell_pressed(button_id: str, n_cols: int, cols_max: int, n_grid: int, image_list: List[html.Img], *args):
+def image_cell_pressed(
+        button_id: str,
+        n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        *args
+    ):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
@@ -471,11 +475,15 @@ def image_cell_pressed(button_id: str, n_cols: int, cols_max: int, n_grid: int, 
     new_class_clicked = ' '.join(new_class_clicked)
     new_classes[idx] = new_class_clicked
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else empty_image
     return new_classes,zoomed_img, cell_last_clicked
 
 
-def toggle_group_in_first_n_rows(row: int, n_cols: int, rows_max: int, cols_max: int, image_list: List[html.Img], *args):
+def toggle_group_in_first_n_rows(
+        row: int, n_cols: int, rows_max: int, cols_max: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        *args
+    ):
 
     cell_last_clicked = args[-1]
     if not cell_last_clicked:
@@ -490,11 +498,16 @@ def toggle_group_in_first_n_rows(row: int, n_cols: int, rows_max: int, cols_max:
             new_classes[cell_list_idx] = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: int, n_grid: int, image_list: List[html.Img], *args):
+def direction_key_pressed(
+        button_id: str,
+        n_rows: int, n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        *args
+    ):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
@@ -529,11 +542,16 @@ def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: in
         new_classes[current_idx]= ' '.join(class_toggle_focus(new_classes[current_idx].split(' ')))
         cell_last_clicked = [new_i, new_j]
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def keep_delete_pressed(button_id: str, n_cols: int, cols_max: int, n_grid: int, image_list: List[html.Img], *args):
+def keep_delete_pressed(
+        button_id: str,
+        n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        *args
+    ):
 
     cell_last_clicked = args[-1]
     new_classes = list(args[n_grid:-1])
@@ -552,7 +570,7 @@ def keep_delete_pressed(button_id: str, n_cols: int, cols_max: int, n_grid: int,
             new_classes[idx] = (' '.join(class_toggle_delete(my_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 

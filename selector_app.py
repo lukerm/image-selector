@@ -83,6 +83,7 @@ import config
 STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 IMAGE_TYPES = config.IMAGE_TYPES
+EMPTY_IMAGE = config.EMPTY_IMAGE
 
 ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
@@ -748,7 +749,7 @@ def activate_deactivate_cells(
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        return utils.resize_grid_pressed(image_list=image_list, rows_max=ROWS_MAX, cols_max=COLS_MAX)
+        return utils.resize_grid_pressed(image_list=image_list, rows_max=ROWS_MAX, cols_max=COLS_MAX, empty_image=EMPTY_IMAGE)
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -757,14 +758,14 @@ def activate_deactivate_cells(
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
     if button_id in ['choose-grid-size', 'image-container', 'image-meta-data', 'loaded-image-path']:
-        return utils.resize_grid_pressed(image_list=image_list, rows_max=ROWS_MAX, cols_max=COLS_MAX)
+        return utils.resize_grid_pressed(image_list=image_list, rows_max=ROWS_MAX, cols_max=COLS_MAX, empty_image=EMPTY_IMAGE)
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
             button_id=button_id,
             n_cols=n_cols, cols_max=COLS_MAX, n_grid=ROWS_MAX*COLS_MAX,
-            image_list=image_list,
+            image_list=image_list, empty_image=EMPTY_IMAGE,
             *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
@@ -775,7 +776,7 @@ def activate_deactivate_cells(
         current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(
             row=n_rows, n_cols=n_cols,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
-            image_list=image_list,
+            image_list=image_list, empty_image=EMPTY_IMAGE,
             *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
@@ -786,7 +787,7 @@ def activate_deactivate_cells(
             button_id=button_id,
             n_rows=n_rows, n_cols=n_cols,
             cols_max=COLS_MAX, n_grid=ROWS_MAX * COLS_MAX,
-            image_list=image_list,
+            image_list=image_list, empty_image=EMPTY_IMAGE,
             *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
@@ -795,7 +796,7 @@ def activate_deactivate_cells(
         current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
             button_id=button_id,
             n_cols=n_cols, cols_max=COLS_MAX, n_grid=ROWS_MAX * COLS_MAX,
-            image_list=image_list,
+            image_list=image_list, empty_image=EMPTY_IMAGE,
             *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
