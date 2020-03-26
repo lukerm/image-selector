@@ -26,8 +26,6 @@ import config
 
 ## Constants ##
 
-ROWS_MAX = config.ROWS_MAX
-COLS_MAX = config.COLS_MAX
 N_GRID = config.N_GRID
 
 IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
