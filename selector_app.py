@@ -417,7 +417,6 @@ def load_images(n, dropdown_value, dropdown_opts):
     image_dir = opts[dropdown_value]
 
     image_list = []
-    image_date = []
     try:
 
         # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
