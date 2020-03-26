@@ -432,7 +432,7 @@ def resize_grid_pressed(image_list, rows_max: int, cols_max: int):
     return class_names + [zoomed_img, [0,0]]
 
 
-def image_cell_pressed(button_id, n_cols, image_list, *args):
+def image_cell_pressed(button_id: str, n_cols: int, cols_max: int, image_list: List[html.Img], *args):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
@@ -440,16 +440,16 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     cell_loc = list(map(int, re.findall('[0-9]+', button_id)))
 
     # Class name of the pressed button
-    previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
+    previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*cols_max]
     previous_class_clicked = previous_class_clicked.split(' ')
     new_classes = list(args[N_GRID:-1])
     i, j = cell_loc
-    idx = i * COLS_MAX + j
+    idx = i * cols_max + j
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
 
     if cell_last_clicked != cell_loc:
-        previous_class_idx = cell_last_clicked[1] + cell_last_clicked[0]*COLS_MAX
+        previous_class_idx = cell_last_clicked[1] + cell_last_clicked[0]*cols_max
         previous_class = args[N_GRID + previous_class_idx]
         # If it was not previously clicked, this cell just keeps it old class name
         if 'focus' not in previous_class:

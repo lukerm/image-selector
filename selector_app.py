@@ -761,7 +761,12 @@ def activate_deactivate_cells(
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
+            button_id=button_id,
+            n_cols=n_cols, cols_max=COLS_MAX,
+            image_list=image_list,
+            *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Toggle the grouping state of all cells in the first rows of the grid
