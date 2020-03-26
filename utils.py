@@ -483,7 +483,8 @@ def toggle_group_in_first_n_rows(row: int, n_cols: int, rows_max: int, cols_max:
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
 
-    new_classes = list(args[N_GRID:-1])
+    n_grid = rows_max * cols_max
+    new_classes = list(args[n_grid:-1])
     for i in range(min(row, rows_max)):
         for j in range(n_cols):
             cell_list_idx = j + i*cols_max
