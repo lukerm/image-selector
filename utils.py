@@ -536,14 +536,14 @@ def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: in
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
+def keep_delete_pressed(button_id: str, n_cols: int, cols_max: int, image_list: List[html.Img], *args):
 
     cell_last_clicked = args[-1]
     new_classes = list(args[N_GRID:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
     i, j = cell_last_clicked
-    idx = i * COLS_MAX + j
+    idx = i * cols_max + j
     my_class = new_classes[idx]
 
     # It must be in the group to be kept or deleted
