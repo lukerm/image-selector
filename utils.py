@@ -24,14 +24,6 @@ import dash_html_components as html
 import config
 
 
-## Constants ##
-
-IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
-
-
-## Functions ##
-
-
 # File manipulations #
 
 def copy_image(fname, src_path, dst_path, image_types, static_image_route='/'):
@@ -188,13 +180,13 @@ def find_image_dir_on_system(img_fname):
     return path_options
 
 
-def get_backup_path(original_image_dir, intended_backup_root):
+def get_backup_path(original_image_dir: str, image_backup_path: str):
     """
     Calculate the location where all the images will be backed up to.
 
     Args:
         original_image_dir = str, filepath of where the original images are stored (no filename)
-        intended_backup_root = str, the filepath to the root folder where all image files will be backed up to
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns:
         backup_path = str, full filepath the specific location (within intended_backup_root) these images will be
@@ -203,8 +195,8 @@ def get_backup_path(original_image_dir, intended_backup_root):
                              (no filename)
     """
 
-    relative_path, _ = remove_common_beginning(original_image_dir, IMAGE_BACKUP_PATH)
-    backup_path = os.path.join(IMAGE_BACKUP_PATH, relative_path)
+    relative_path, _ = remove_common_beginning(original_image_dir, image_backup_path)
+    backup_path = os.path.join(image_backup_path, relative_path)
 
     return backup_path, relative_path
 
@@ -212,17 +204,18 @@ def get_backup_path(original_image_dir, intended_backup_root):
 # Database #
 
 
-def send_to_database(database_uri, database_table, image_path, filename_list, keep_list, date_taken_list):
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list, date_taken_list, image_backup_path):
     """
     Send data pertaining to a completed group of images to the database.
 
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
+        image_path = str, the image path where the images are now stored (typically a subfolder of image_backup_path)
         filename_list = list, of str, image filenames within the group
         keep_list = list, of bool, whether to keep those images or not
         date_taken_list = list, of datetime.datetime, when the images were originally taken (elements can be None)
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns: None
 
@@ -240,7 +233,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     group_id = int(datetime.timestamp(modified_time)*10)
 
     # Calculate the path where the image is backed up to (i.e. raw data)
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
@@ -255,15 +248,16 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     cnxn.close()
 
 
-def delete_from_database(database_uri, database_table, image_path, filename_list):
+def delete_from_database(database_uri, database_table, image_path, filename_list, image_backup_path):
     """
     Remove data pertaining to a completed group of images to the database (via undo button).
 
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
+        image_path = str, the image path where the images are now stored (typically a subfolder of image_backup_path)
         filename_list = list, of str, image filenames within the group
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns: None
     """
@@ -272,7 +266,7 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
     cnxn = engine.connect()
 
     # Calculate the path where the image is backed up to (i.e. raw data)
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
 
     delete_query = f'''
                     DELETE FROM {database_table}
@@ -305,7 +299,7 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
     Returns: None
 
     Note: a major side effect is that all files that are not kept (see keeps) are deleted from the file system.
-            However, they can be recovered from IMAGE_BACKUP_PATH.
+            However, they can be recovered from IMAGE_BACKUP_PATH (see config.py)
     """
 
     # Save all meta data in JSON format on disk
@@ -322,13 +316,13 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
             date_taken_list,
     )
 
-    # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+    # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH (see config.py))
     for i, fname in enumerate(filename_list):
         if not keep_list[i]:
             os.remove(os.path.join(image_path, fname))
 
 
-def undo_last_group(image_data: dict, image_path: str, filename_list: list):
+def undo_last_group(image_data: dict, image_path: str, filename_list: list, image_backup_path: str):
     """
     Perform a collection of operations that undo the choices for a group of images:
         1) dump data in a JSON file (overwrites with one less group)
@@ -340,6 +334,7 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
                      position, keep, filename
         image_path = str, the filepath to this group of images
         filename_list = list, of str, the filename of each image in this group (can be found at image_path)
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns: None
 
@@ -353,8 +348,8 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
     # Save data for the new group in the specified database
     delete_from_database(config.DATABASE_URI, config.DATABASE_TABLE, image_path, filename_list)
 
-    # Restore the previously discarded images from IMAGE_BACKUP_PATH to their original location
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    # Restore the previously discarded images from image_backup_path to their original location
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
     for i, fname in enumerate(filename_list):
         shutil.copyfile(os.path.join(img_backup_path, fname), os.path.join(image_path, fname))
         #copy_image(fname, img_backup_path, image_path, config.IMAGE_TYPES)

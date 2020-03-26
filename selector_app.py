@@ -619,7 +619,12 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
             filenames_undo = image_data[image_path]['filename'].pop()
 
             if not program_args.demo:
-                utils.undo_last_group(image_data=image_data, image_path=image_path, filename_list=filenames_undo)
+                utils.undo_last_group(
+                    image_data=image_data,
+                    image_path=image_path,
+                    filename_list=filenames_undo,
+                    image_backup_path=IMAGE_BACKUP_PATH,
+                )
 
         # In case the lists are already empty
         except IndexError:
