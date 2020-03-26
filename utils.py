@@ -496,12 +496,12 @@ def toggle_group_in_first_n_rows(row: int, n_cols: int, rows_max: int, cols_max:
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: int, image_list: List[html.Img], *args):
+def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: int, n_grid: int, image_list: List[html.Img], *args):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
     # Get the classes from args and only change the value of the affected cell
-    new_classes = list(args[N_GRID:-1])
+    new_classes = list(args[n_grid:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
     i, j = cell_last_clicked
@@ -514,16 +514,16 @@ def direction_key_pressed(button_id: str, n_rows: int, n_cols: int, cols_max: in
     new_i, new_j = i, j
     if button_id == 'move-left':
         new_i, new_j = i, (j-1) % n_cols
-        check_class = args[N_GRID + new_j + new_i*cols_max]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-right':
         new_i, new_j = i, (j+1) % n_cols
-        check_class = args[N_GRID + new_j + new_i*cols_max]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-up':
         new_i, new_j = (i-1) % n_rows, j
-        check_class = args[N_GRID + new_j + new_i*cols_max]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-down':
         new_i, new_j = (i+1) % n_rows, j
-        check_class = args[N_GRID + new_j + new_i*cols_max]
+        check_class = args[n_grid + new_j + new_i*cols_max]
 
     # Add focus to check_class
     if check_class:
