@@ -19,14 +19,17 @@ N_GRID = ROWS_MAX * COLS_MAX
 # Allowed file extension for image types
 IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png', '.PNG']
 
+
 # Globals for the images
-img_fname = 'job_done.jpg' # Default image
-IMG_PATH = STATIC_IMAGE_ROUTE + img_fname
 
 IMG_STYLE = {'display': 'block', 'height': 'auto', 'max-width': '100%'} # Applies to grid images
 #IMG_STYLE = {'display': 'block', 'height': 'auto', 'width': 'auto'}
 IMG_STYLE_ZOOM = {'display': 'block', 'height': 'auto', 'max-width': '100%'} # Applies to zoomed image
 
+# Default image
+img_fname = 'job_done.jpg'
+IMG_PATH = STATIC_IMAGE_ROUTE + img_fname
+EMPTY_IMAGE = html.Img(src=IMG_PATH, style=IMG_STYLE)
 
 # Assumes that images are stored in the img/ directory for now
 IMAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
@@ -36,8 +39,6 @@ IMAGE_SRCS = IMAGE_SRCS + [IMG_PATH]*(ROWS_MAX*COLS_MAX - len(IMAGE_SRCS))
 
 # Where the image folders should be copied to before deleting images in the original location
 IMAGE_BACKUP_PATH = os.path.join(os.path.expanduser('~'), 'Pictures', '_deduplicate_backup')
-# Default image
-EMPTY_IMAGE = html.Img(src=IMG_PATH, style=IMG_STYLE)
 
 # Where to save metadata and backup images
 META_DATA_FNAME = f'image_selector_session_{str(date.today())}_{int(datetime.timestamp(datetime.now()))}.json'
