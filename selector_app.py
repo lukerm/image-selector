@@ -452,7 +452,7 @@ def load_images(n, dropdown_value, dropdown_opts):
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
-            image_list.append(config.IMG_PATH)
+            image_list.append(config.EMPTY_IMG_PATH)
 
     except FileNotFoundError:
         return [], ['__ignore'], [0]

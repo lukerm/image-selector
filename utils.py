@@ -402,7 +402,7 @@ def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, imag
     """
 
     if len(image_list) < rows_max * cols_max:
-        image_list = image_list + [config.IMG_PATH]*(rows_max * cols_max - len(image_list))
+        image_list = image_list + [config.EMPTY_IMG_PATH] * (rows_max * cols_max - len(image_list))
 
     grid = []
     for i in range(rows_max):
