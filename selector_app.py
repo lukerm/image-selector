@@ -53,6 +53,7 @@ Continue until ALL the images in that directory have been grouped and annotated 
 #                   > Click Backspace / +
 
 # TODO: KNOWN BUG: the "empty image" (see config) can be selected and included in a group - this should not be allowed!
+# TODO: KNOWN BUG: you cannot traverse over empty padding images, which might be annoying.
 
 
 ## Imports ##
