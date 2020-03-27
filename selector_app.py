@@ -261,7 +261,7 @@ app.layout = html.Div(
                         children=utils.create_image_grid(
                             n_row=2, n_col=2,
                             rows_max=ROWS_MAX, cols_max=COLS_MAX,
-                            image_list=config.IMAGE_SRCS
+                            image_list=config.IMAGE_SRCS, empty_img_path=config.EMPTY_IMG_PATH
                         ),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
@@ -680,7 +680,11 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img_src for i, img_src in enumerate(image_list) if not flat_mask[i]]
 
-    return utils.create_image_grid(n_row=n_row, n_col=n_col, rows_max=ROWS_MAX, cols_max=COLS_MAX, image_list=image_list)
+    return utils.create_image_grid(
+        n_row=n_row, n_col=n_col,
+        rows_max=ROWS_MAX, cols_max=COLS_MAX,
+        image_list=image_list, empty_img_path=config.EMPTY_IMG_PATH,
+    )
 
 
 @app.callback(

@@ -389,7 +389,7 @@ def undo_last_group(
 # Grid tools #
 
 
-def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str]):
+def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str):
     """
     Create a grid of the same image with n_row rows and n_col columns
 
@@ -398,11 +398,12 @@ def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, imag
     :param rows_max: int, the maximum available number of rows (e.g. see config.py)
     :param cols_max: int, the maximum available number of columns (e.g. see config.py)
     :param image_list: list, of str, filepaths of the images
+    :param empty_img_path: str, full filepath to where the empty / default image can be served from (for padding the grid)
     :return: html.Div, containing a grid of images of size n_row x n_col
     """
 
     if len(image_list) < rows_max * cols_max:
-        image_list = image_list + [config.EMPTY_IMG_PATH] * (rows_max * cols_max - len(image_list))
+        image_list = image_list + [empty_img_path] * (rows_max * cols_max - len(image_list))
 
     grid = []
     for i in range(rows_max):
