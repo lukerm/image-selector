@@ -198,7 +198,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id='choose-grid-size',
                             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
-                            value=2,
+                            value=4,
                             style={'width': '9.8vw',}
                         ),
                     ),
@@ -260,7 +260,7 @@ app.layout = html.Div(
                     html.Td(
                         id='responsive-image-grid',
                         children=utils.create_image_grid(
-                            n_row=2, n_col=2,
+                            n_row=4, n_col=4,
                             rows_max=ROWS_MAX, cols_max=COLS_MAX,
                             image_list=config.IMAGE_SRCS, empty_img_path=config.EMPTY_IMG_PATH
                         ),
