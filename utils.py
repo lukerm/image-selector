@@ -20,9 +20,6 @@ import pandas as pd
 
 import dash_html_components as html
 
-# TODO: remove reliance on config
-import config
-
 
 # File manipulations #
 
