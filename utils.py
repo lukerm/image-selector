@@ -283,6 +283,7 @@ def record_grouped_data(
         filename_list: list,
         keep_list: list,
         date_taken_list: list,
+        image_backup_path: str,
         meta_data_fpath: str,
         database_uri: str,
         database_table: str,
@@ -326,6 +327,7 @@ def record_grouped_data(
             filename_list=filename_list,
             keep_list=keep_list,
             date_taken_list=date_taken_list,
+            image_backup_path=image_backup_path,
     )
 
     # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH (see config.py))
@@ -373,7 +375,8 @@ def undo_last_group(
         database_uri=database_uri,
         database_table=database_table,
         image_path=image_path,
-        filename_list=filename_list
+        filename_list=filename_list,
+        image_backup_path=image_backup_path,
     )
 
     # Restore the previously discarded images from image_backup_path to their original location

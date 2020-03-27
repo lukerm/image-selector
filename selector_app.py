@@ -589,6 +589,7 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                 utils.record_grouped_data(
                     image_data=image_data, image_path=image_path,
                     filename_list=grouped_filenames, keep_list=grouped_cell_keeps, date_taken_list=grouped_date_taken,
+                    image_backup_path=IMAGE_BACKUP_PATH,
                     meta_data_fpath=config.META_DATA_FPATH,
                     database_uri=config.DATABASE_URI, database_table=config.DATABASE_TABLE
                 )
@@ -606,6 +607,7 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                 utils.record_grouped_data(
                     image_data=image_data, image_path=image_path,
                     filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
+                    image_backup_path=IMAGE_BACKUP_PATH,
                     meta_data_fpath=config.META_DATA_FPATH,
                     database_uri=config.DATABASE_URI, database_table=config.DATABASE_TABLE
                 )
