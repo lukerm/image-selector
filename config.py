@@ -7,6 +7,8 @@ import dash_html_components as html
 
 from datetime import date, datetime
 
+import utils
+
 
 # Where images will be served from
 STATIC_IMAGE_ROUTE = '/'
@@ -35,6 +37,7 @@ EMPTY_IMAGE = html.Img(src=EMPTY_IMG_PATH, style=IMG_STYLE)
 IMAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'img')
 # List of image objects - pre-load here to avoid re-loading on every grid re-sizing
 IMAGE_SRCS = [STATIC_IMAGE_ROUTE + fname for fname in sorted(os.listdir(IMAGE_DIR))]
+IMAGE_SRCS = utils.sort_images_by_datetime(IMAGE_SRCS, IMAGE_DIR)
 IMAGE_SRCS = IMAGE_SRCS + [EMPTY_IMG_PATH] * (ROWS_MAX * COLS_MAX - len(IMAGE_SRCS))
 
 # Where the image folders should be copied to before deleting images in the original location
