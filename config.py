@@ -24,9 +24,8 @@ IMAGE_TYPES = ['.JPG', '.jpg', '.JPEG', '.jpeg', '.png', '.PNG']
 
 # Globals for the images
 
-IMG_STYLE = {'display': 'block', 'height': 'auto', 'max-width': '100%'} # Applies to grid images
-#IMG_STYLE = {'display': 'block', 'height': 'auto', 'width': 'auto'}
-IMG_STYLE_ZOOM = {'display': 'block', 'height': 'auto', 'max-width': '100%'} # Applies to zoomed image
+IMG_STYLE = {'display': 'block', 'height': 'auto', 'max-width': '100%'}  # Applies to grid images
+IMG_STYLE_ZOOM = {'display': 'block', 'height': 'auto', 'max-width': '100%'}  # Applies to zoomed image
 
 # Default image
 img_fname = 'job_done.jpg'
