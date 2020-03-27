@@ -789,11 +789,7 @@ def activate_deactivate_cells(
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
-            button_id=button_id,
-            n_cols=n_cols, cols_max=COLS_MAX, n_grid=ROWS_MAX*COLS_MAX,
-            image_list=image_list, empty_image=EMPTY_IMAGE,
-            zoom_img_style=config.IMG_STYLE_ZOOM,
-            *args
+            button_id, n_cols, COLS_MAX, ROWS_MAX*COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
@@ -801,33 +797,20 @@ def activate_deactivate_cells(
     elif 'select-row-upto-' in button_id:
         n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
         current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(
-            row=n_rows, n_cols=n_cols,
-            rows_max=ROWS_MAX, cols_max=COLS_MAX,
-            image_list=image_list, empty_image=EMPTY_IMAGE,
-            zoom_img_style=config.IMG_STYLE_ZOOM,
-            *args
+            n_rows, n_cols, ROWS_MAX, COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(
-            button_id=button_id,
-            n_rows=n_rows, n_cols=n_cols,
-            cols_max=COLS_MAX, n_grid=ROWS_MAX * COLS_MAX,
-            image_list=image_list, empty_image=EMPTY_IMAGE,
-            zoom_img_style=config.IMG_STYLE_ZOOM,
-            *args
+            button_id, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
         current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
-            button_id=button_id,
-            n_cols=n_cols, cols_max=COLS_MAX, n_grid=ROWS_MAX * COLS_MAX,
-            image_list=image_list, empty_image=EMPTY_IMAGE,
-            zoom_img_style=config.IMG_STYLE_ZOOM,
-            *args
+            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
