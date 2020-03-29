@@ -341,7 +341,7 @@ app.layout = html.Div(
             ]),
         ], style={'display': 'none'}),
         # Store the number of images
-        dcc.Store(id='n_images', data=[24]),
+        dcc.Store(id='n_images', data=[config.N_IMG_SRCS]),
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
         # from the config (until the user loads a new image folder).
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
