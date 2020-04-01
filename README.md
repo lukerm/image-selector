@@ -1,6 +1,6 @@
 # Image selector
 
-<> ![](demo.gif)
+![](demo.gif)
 
 ## Overview
 
