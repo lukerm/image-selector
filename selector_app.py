@@ -53,6 +53,7 @@ Continue until ALL the images in that directory have been grouped and annotated 
 #                   > Click Backspace / +
 
 # TODO: KNOWN BUG: the "empty image" (see config) can be selected and included in a group - this should not be allowed!
+# TODO: KNOWN BUG: you cannot traverse over empty padding images, which might be annoying.
 
 
 ## Imports ##
@@ -83,6 +84,7 @@ import config
 STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
 IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
 IMAGE_TYPES = config.IMAGE_TYPES
+EMPTY_IMAGE = config.EMPTY_IMAGE
 
 ROWS_MAX = config.ROWS_MAX
 COLS_MAX = config.COLS_MAX
@@ -102,7 +104,7 @@ ALL_TD_ID_STATES = [State(f'grid-td-{i}-{j}', 'className') for i in range(ROWS_M
 
 # Copy default images to the TMP_DIR so they're available when the program starts
 for fname in sorted(os.listdir(config.IMAGE_DIR)):
-    static_image_path = utils.copy_image(fname, config.IMAGE_DIR, TMP_DIR, IMAGE_TYPES)
+    static_image_path = utils.copy_image(fname, config.IMAGE_DIR, TMP_DIR, IMAGE_TYPES, STATIC_IMAGE_ROUTE)
 
 
 ## Layout ##
@@ -196,7 +198,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id='choose-grid-size',
                             options=[{'label': f'{k+1} x {k+1}', 'value': k+1} for k in range(ROWS_MAX) if k > 0],
-                            value=2,
+                            value=4,
                             style={'width': '9.8vw',}
                         ),
                     ),
@@ -257,7 +259,11 @@ app.layout = html.Div(
                 html.Tr([
                     html.Td(
                         id='responsive-image-grid',
-                        children=utils.create_image_grid(2, 2, config.IMAGE_SRCS),
+                        children=utils.create_image_grid(
+                            n_row=4, n_col=4,
+                            rows_max=ROWS_MAX, cols_max=COLS_MAX,
+                            image_list=config.IMAGE_SRCS, empty_img_path=config.EMPTY_IMG_PATH
+                        ),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
                     html.Td([
@@ -335,7 +341,7 @@ app.layout = html.Div(
             ]),
         ], style={'display': 'none'}),
         # Store the number of images
-        dcc.Store(id='n_images', data=[24]),
+        dcc.Store(id='n_images', data=[config.N_IMG_SRCS]),
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
         # from the config (until the user loads a new image folder).
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
@@ -417,7 +423,6 @@ def load_images(n, dropdown_value, dropdown_opts):
     image_dir = opts[dropdown_value]
 
     image_list = []
-    image_date = []
     try:
 
         # Need to copy to a corresponding subfolder in the IMAGE_BACKUP_PATH, which is backup_path
@@ -433,10 +438,8 @@ def load_images(n, dropdown_value, dropdown_opts):
 
             # Copy to the TMP_DIR from where the image can be served (rotate on the fly if necessary)
             # Note: if the return value of copy_image is None, then it's not an image file
-            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES)
+            static_image_path = utils.copy_image(fname, image_dir, TMP_DIR, IMAGE_TYPES, STATIC_IMAGE_ROUTE)
             if static_image_path is not None:
-                img_datetime = utils.get_image_taken_date(image_dir, fname)
-                image_date.append(img_datetime)
                 image_list.append(static_image_path)
 
                 # Copy image to appropriate subdirectory in IMAGE_BACKUP_PATH
@@ -445,14 +448,12 @@ def load_images(n, dropdown_value, dropdown_opts):
                     #_ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
         # Sort the image list by date, earliest to latest
-        imgs_dates = list(zip(image_list, image_date))
-        imgs_dates_sorted = sorted(imgs_dates, key=lambda x: x[1])
-        image_list = [img for img, _ in imgs_dates_sorted]
+        image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
-            image_list.append(config.IMG_PATH)
+            image_list.append(config.EMPTY_IMG_PATH)
 
     except FileNotFoundError:
         return [], ['__ignore'], [0]
@@ -589,6 +590,9 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                 utils.record_grouped_data(
                     image_data=image_data, image_path=image_path,
                     filename_list=grouped_filenames, keep_list=grouped_cell_keeps, date_taken_list=grouped_date_taken,
+                    image_backup_path=IMAGE_BACKUP_PATH,
+                    meta_data_fpath=config.META_DATA_FPATH,
+                    database_uri=config.DATABASE_URI, database_table=config.DATABASE_TABLE
                 )
 
 
@@ -604,6 +608,9 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
                 utils.record_grouped_data(
                     image_data=image_data, image_path=image_path,
                     filename_list=[focus_filename], keep_list=[True], date_taken_list=[focus_date_taken],
+                    image_backup_path=IMAGE_BACKUP_PATH,
+                    meta_data_fpath=config.META_DATA_FPATH,
+                    database_uri=config.DATABASE_URI, database_table=config.DATABASE_TABLE
                 )
 
         else:
@@ -622,7 +629,15 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
             filenames_undo = image_data[image_path]['filename'].pop()
 
             if not program_args.demo:
-                utils.undo_last_group(image_data=image_data, image_path=image_path, filename_list=filenames_undo)
+                utils.undo_last_group(
+                    image_data=image_data,
+                    image_path=image_path,
+                    filename_list=filenames_undo,
+                    image_backup_path=IMAGE_BACKUP_PATH,
+                    meta_data_fpath=config.META_DATA_FPATH,
+                    database_uri=config.DATABASE_URI,
+                    database_table=config.DATABASE_TABLE,
+                )
 
         # In case the lists are already empty
         except IndexError:
@@ -669,7 +684,11 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img_src for i, img_src in enumerate(image_list) if not flat_mask[i]]
 
-    return utils.create_image_grid(n_row, n_col, image_list)
+    return utils.create_image_grid(
+        n_row=n_row, n_col=n_col,
+        rows_max=ROWS_MAX, cols_max=COLS_MAX,
+        image_list=image_list, empty_img_path=config.EMPTY_IMG_PATH,
+    )
 
 
 @app.callback(
@@ -752,7 +771,11 @@ def activate_deactivate_cells(
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
     if not context.triggered:
-        return utils.resize_grid_pressed(image_list)
+        return utils.resize_grid_pressed(
+            image_list=image_list,
+            rows_max=ROWS_MAX, cols_max=COLS_MAX,
+            empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
+        )
     else:
         button_id = context.triggered[0]['prop_id'].split('.')[0]
 
@@ -761,26 +784,38 @@ def activate_deactivate_cells(
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
     if button_id in ['choose-grid-size', 'image-container', 'image-meta-data', 'loaded-image-path']:
-        return utils.resize_grid_pressed(image_list)
+        return utils.resize_grid_pressed(
+            image_list=image_list,
+            rows_max=ROWS_MAX, cols_max=COLS_MAX,
+            empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
+        )
 
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
-        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(button_id, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
+            button_id, n_cols, COLS_MAX, ROWS_MAX*COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Toggle the grouping state of all cells in the first rows of the grid
     elif 'select-row-upto-' in button_id:
         n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
-        current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(
+            n_rows, n_cols, ROWS_MAX, COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
-        current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(button_id, n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(
+            button_id, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
-        current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args)
+        current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
+            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     else:

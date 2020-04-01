@@ -11,7 +11,7 @@ import shutil
 import subprocess
 
 from datetime import datetime, timedelta
-from typing import List, Any
+from typing import Any, Dict, List
 
 from sqlalchemy import create_engine
 from PIL import Image
@@ -20,26 +20,10 @@ import pandas as pd
 
 import dash_html_components as html
 
-import config
-
-
-## Constants ##
-
-STATIC_IMAGE_ROUTE = config.STATIC_IMAGE_ROUTE
-ROWS_MAX = config.ROWS_MAX
-COLS_MAX = config.COLS_MAX
-N_GRID = config.N_GRID
-
-IMAGE_BACKUP_PATH = config.IMAGE_BACKUP_PATH
-EMPTY_IMAGE = config.EMPTY_IMAGE
-
-
-## Functions ##
-
 
 # File manipulations #
 
-def copy_image(fname, src_path, dst_path, image_types):
+def copy_image(fname, src_path, dst_path, image_types, static_image_route='/'):
     """
     Perform a copy of the file if it is an image. It will be copied to dst_path.
 
@@ -48,6 +32,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         src_path = str, directory of where to copy from (no filename)
         dst_path = str, directory of where to copy to (no filename)
         image_types = list, of str, valid extensions of image files (e.g. .jpg)
+        static_image_route = str, the path where the static images will be served from
 
     Returns: str, full filepath that the server is expecting
              or None, if not an valid image type (see IMAGE_TYPES)
@@ -78,7 +63,7 @@ def copy_image(fname, src_path, dst_path, image_types):
         pil_image.rotate(rotate_degrees, expand=1).save(os.path.join(dst_path, fname))
 
     # Append the Img object with the static path
-    static_image_path = os.path.join(STATIC_IMAGE_ROUTE, fname)
+    static_image_path = os.path.join(static_image_route, fname)
 
     return static_image_path
 
@@ -132,6 +117,23 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
         return None
 
 
+def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -> List[str]:
+    """
+    Sort images by time taken (ascending, i.e. earliest to latest).
+
+    :param image_filepaths: list, of str, full filepaths to the unsorted images
+    :param image_dir: str, image directory to look in first (None => filepath supplied with image_filepaths will be used)
+    :return: list, of str, the images sorted by their date taken
+    """
+    image_datetimes = []
+    for fullpath in image_filepaths:
+        my_dir, filename = os.path.split(fullpath)
+        image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filename))
+
+    sorted_images = [img for img, _ in sorted(list(zip(image_filepaths, image_datetimes)), key=lambda x: x[1])]
+    return sorted_images
+
+
 def get_image_rotation(image_dir, fname):
     """
     Calculate how much to rotate the image from the encoded orientation value (if available).
@@ -175,13 +177,13 @@ def find_image_dir_on_system(img_fname):
     return path_options
 
 
-def get_backup_path(original_image_dir, intended_backup_root):
+def get_backup_path(original_image_dir: str, image_backup_path: str):
     """
     Calculate the location where all the images will be backed up to.
 
     Args:
         original_image_dir = str, filepath of where the original images are stored (no filename)
-        intended_backup_root = str, the filepath to the root folder where all image files will be backed up to
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns:
         backup_path = str, full filepath the specific location (within intended_backup_root) these images will be
@@ -190,8 +192,8 @@ def get_backup_path(original_image_dir, intended_backup_root):
                              (no filename)
     """
 
-    relative_path, _ = remove_common_beginning(original_image_dir, IMAGE_BACKUP_PATH)
-    backup_path = os.path.join(IMAGE_BACKUP_PATH, relative_path)
+    relative_path, _ = remove_common_beginning(original_image_dir, image_backup_path)
+    backup_path = os.path.join(image_backup_path, relative_path)
 
     return backup_path, relative_path
 
@@ -199,17 +201,18 @@ def get_backup_path(original_image_dir, intended_backup_root):
 # Database #
 
 
-def send_to_database(database_uri, database_table, image_path, filename_list, keep_list, date_taken_list):
+def send_to_database(database_uri, database_table, image_path, filename_list, keep_list, date_taken_list, image_backup_path):
     """
     Send data pertaining to a completed group of images to the database.
 
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
+        image_path = str, the image path where the images are now stored (typically a subfolder of image_backup_path)
         filename_list = list, of str, image filenames within the group
         keep_list = list, of bool, whether to keep those images or not
         date_taken_list = list, of datetime.datetime, when the images were originally taken (elements can be None)
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns: None
 
@@ -227,7 +230,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     group_id = int(datetime.timestamp(modified_time)*10)
 
     # Calculate the path where the image is backed up to (i.e. raw data)
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
@@ -242,15 +245,16 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     cnxn.close()
 
 
-def delete_from_database(database_uri, database_table, image_path, filename_list):
+def delete_from_database(database_uri, database_table, image_path, filename_list, image_backup_path):
     """
     Remove data pertaining to a completed group of images to the database (via undo button).
 
     Args:
         database_uri = str, of the form accepted by sqlalchemy to create a database connection
         database_table = str, name of the database table
-        image_path = str, the image path where the images are now stored (typically a subfolder of IMAGE_BACKUP_PATH)
+        image_path = str, the image path where the images are now stored (typically a subfolder of image_backup_path)
         filename_list = list, of str, image filenames within the group
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
 
     Returns: None
     """
@@ -259,7 +263,7 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
     cnxn = engine.connect()
 
     # Calculate the path where the image is backed up to (i.e. raw data)
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
 
     delete_query = f'''
                     DELETE FROM {database_table}
@@ -270,7 +274,17 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
     cnxn.close()
 
 
-def record_grouped_data(image_data: dict, image_path: str, filename_list: list, keep_list: list, date_taken_list: list):
+def record_grouped_data(
+        image_data: dict,
+        image_path: str,
+        filename_list: list,
+        keep_list: list,
+        date_taken_list: list,
+        image_backup_path: str,
+        meta_data_fpath: str,
+        database_uri: str,
+        database_table: str,
+    ):
     """
     Perform a collection of operations that record the choices for a group of images:
         1) dump data in a JSON file,
@@ -288,34 +302,46 @@ def record_grouped_data(image_data: dict, image_path: str, filename_list: list, 
                     Note: order corresponds to filenames list
         date_taken_list = list, of datetime.datetime, when the image was taken
                           Note: order corresponds to filenames list
+        meta_data_fpath = str, a full filepath of where to dump session metadata as JSON (see config.py)
+        database_uri = str, address to database according to SQLAlchemy (see config.py)
+        database_table = str, table name in which to store the image group data (see config.py)
 
     Returns: None
 
     Note: a major side effect is that all files that are not kept (see keeps) are deleted from the file system.
-            However, they can be recovered from IMAGE_BACKUP_PATH.
+            However, they can be recovered from IMAGE_BACKUP_PATH (see config.py)
     """
 
     # Save all meta data in JSON format on disk
-    with open(config.META_DATA_FPATH, 'w') as j:
+    with open(meta_data_fpath, 'w') as j:
         json.dump(image_data, j)
 
     # Save data for the new group in the specified database
     send_to_database(
-            config.DATABASE_URI,
-            config.DATABASE_TABLE,
-            image_path,
-            filename_list,
-            keep_list,
-            date_taken_list,
+            database_uri=database_uri,
+            database_table=database_table,
+            image_path=image_path,
+            filename_list=filename_list,
+            keep_list=keep_list,
+            date_taken_list=date_taken_list,
+            image_backup_path=image_backup_path,
     )
 
-    # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH)
+    # Delete the discarded images (can be restored manually from IMAGE_BACKUP_PATH (see config.py))
     for i, fname in enumerate(filename_list):
         if not keep_list[i]:
             os.remove(os.path.join(image_path, fname))
 
 
-def undo_last_group(image_data: dict, image_path: str, filename_list: list):
+def undo_last_group(
+        image_data: dict,
+        image_path: str,
+        filename_list: list,
+        image_backup_path: str,
+        meta_data_fpath: str,
+        database_uri: str,
+        database_table: str,
+    ):
     """
     Perform a collection of operations that undo the choices for a group of images:
         1) dump data in a JSON file (overwrites with one less group)
@@ -327,6 +353,10 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
                      position, keep, filename
         image_path = str, the filepath to this group of images
         filename_list = list, of str, the filename of each image in this group (can be found at image_path)
+        image_backup_path = str, the filepath to the root folder where all image files will be backed up to
+        meta_data_fpath = str, a full filepath of where to dump session metadata as JSON (see config.py)
+        database_uri = str, address to database according to SQLAlchemy (see config.py)
+        database_table = str, table name in which to store the image group data (see config.py)
 
     Returns: None
 
@@ -334,14 +364,20 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
     """
 
     # Save all meta data in JSON format on disk
-    with open(config.META_DATA_FPATH, 'w') as j:
+    with open(meta_data_fpath, 'w') as j:
         json.dump(image_data, j)
 
     # Save data for the new group in the specified database
-    delete_from_database(config.DATABASE_URI, config.DATABASE_TABLE, image_path, filename_list)
+    delete_from_database(
+        database_uri=database_uri,
+        database_table=database_table,
+        image_path=image_path,
+        filename_list=filename_list,
+        image_backup_path=image_backup_path,
+    )
 
-    # Restore the previously discarded images from IMAGE_BACKUP_PATH to their original location
-    img_backup_path, _ = get_backup_path(image_path, IMAGE_BACKUP_PATH)
+    # Restore the previously discarded images from image_backup_path to their original location
+    img_backup_path, _ = get_backup_path(image_path, image_backup_path)
     for i, fname in enumerate(filename_list):
         shutil.copyfile(os.path.join(img_backup_path, fname), os.path.join(image_path, fname))
         #copy_image(fname, img_backup_path, image_path, config.IMAGE_TYPES)
@@ -350,18 +386,26 @@ def undo_last_group(image_data: dict, image_path: str, filename_list: list):
 # Grid tools #
 
 
-def create_image_grid(n_row, n_col, image_list):
+def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str):
     """
     Create a grid of the same image with n_row rows and n_col columns
+
+    :param n_row: int, the current number of rows visible
+    :param n_col: int, the current number of columns visible
+    :param rows_max: int, the maximum available number of rows (e.g. see config.py)
+    :param cols_max: int, the maximum available number of columns (e.g. see config.py)
+    :param image_list: list, of str, filepaths of the images
+    :param empty_img_path: str, full filepath to where the empty / default image can be served from (for padding the grid)
+    :return: html.Div, containing a grid of images of size n_row x n_col
     """
 
-    if len(image_list) < ROWS_MAX * COLS_MAX:
-        image_list = image_list + [config.IMG_PATH]*(ROWS_MAX * COLS_MAX - len(image_list))
+    if len(image_list) < rows_max * cols_max:
+        image_list = image_list + [empty_img_path] * (rows_max * cols_max - len(image_list))
 
     grid = []
-    for i in range(ROWS_MAX):
+    for i in range(rows_max):
         row = []
-        for j in range(COLS_MAX):
+        for j in range(cols_max):
             hidden = (i >= n_row) or (j >= n_col)
             row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
         row = html.Tr(row)
@@ -401,13 +445,19 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def resize_grid_pressed(image_list):
-    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(ROWS_MAX) for j in range(COLS_MAX)]
-    zoomed_img = html.Img(src=image_list[0], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+def resize_grid_pressed(image_list, rows_max: int, cols_max: int, empty_image: html.Img, zoom_img_style: Dict[str, str]):
+    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
+    zoomed_img = html.Img(src=image_list[0], style=zoom_img_style) if len(image_list) > 0 else empty_image
     return class_names + [zoomed_img, [0,0]]
 
 
-def image_cell_pressed(button_id, n_cols, image_list, *args):
+def image_cell_pressed(
+        button_id: str,
+        n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
@@ -415,17 +465,17 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     cell_loc = list(map(int, re.findall('[0-9]+', button_id)))
 
     # Class name of the pressed button
-    previous_class_clicked = args[N_GRID + cell_loc[1] + cell_loc[0]*COLS_MAX]
+    previous_class_clicked = args[n_grid + cell_loc[1] + cell_loc[0]*cols_max]
     previous_class_clicked = previous_class_clicked.split(' ')
-    new_classes = list(args[N_GRID:-1])
+    new_classes = list(args[n_grid:-1])
     i, j = cell_loc
-    idx = i * COLS_MAX + j
+    idx = i * cols_max + j
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
 
     if cell_last_clicked != cell_loc:
-        previous_class_idx = cell_last_clicked[1] + cell_last_clicked[0]*COLS_MAX
-        previous_class = args[N_GRID + previous_class_idx]
+        previous_class_idx = cell_last_clicked[1] + cell_last_clicked[0]*cols_max
+        previous_class = args[n_grid + previous_class_idx]
         # If it was not previously clicked, this cell just keeps it old class name
         if 'focus' not in previous_class:
             new_class = previous_class
@@ -450,38 +500,50 @@ def image_cell_pressed(button_id, n_cols, image_list, *args):
     new_class_clicked = ' '.join(new_class_clicked)
     new_classes[idx] = new_class_clicked
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
     return new_classes,zoomed_img, cell_last_clicked
 
 
-def toggle_group_in_first_n_rows(row, n_cols, image_list, *args):
+def toggle_group_in_first_n_rows(
+        row: int, n_cols: int, rows_max: int, cols_max: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
 
     cell_last_clicked = args[-1]
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
 
-    new_classes = list(args[N_GRID:-1])
-    for i in range(min(row, ROWS_MAX)):
+    n_grid = rows_max * cols_max
+    new_classes = list(args[n_grid:-1])
+    for i in range(min(row, rows_max)):
         for j in range(n_cols):
-            cell_list_idx = j + i*COLS_MAX
+            cell_list_idx = j + i*cols_max
             previous_class = new_classes[cell_list_idx]
             new_classes[cell_list_idx] = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
+def direction_key_pressed(
+        button_id: str,
+        n_rows: int, n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
     # Get the last clicked cell from args
     cell_last_clicked = args[-1]
 
     # Get the classes from args and only change the value of the affected cell
-    new_classes = list(args[N_GRID:-1])
+    new_classes = list(args[n_grid:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
     i, j = cell_last_clicked
-    idx = i * COLS_MAX + j
+    idx = i * cols_max + j
     my_class = new_classes[idx]
 
     # Move focus away from the cell with it
@@ -490,35 +552,41 @@ def direction_key_pressed(button_id, n_rows, n_cols, image_list, *args):
     new_i, new_j = i, j
     if button_id == 'move-left':
         new_i, new_j = i, (j-1) % n_cols
-        check_class = args[N_GRID + new_j + new_i*COLS_MAX]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-right':
         new_i, new_j = i, (j+1) % n_cols
-        check_class = args[N_GRID + new_j + new_i*COLS_MAX]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-up':
         new_i, new_j = (i-1) % n_rows, j
-        check_class = args[N_GRID + new_j + new_i*COLS_MAX]
+        check_class = args[n_grid + new_j + new_i*cols_max]
     elif button_id == 'move-down':
         new_i, new_j = (i+1) % n_rows, j
-        check_class = args[N_GRID + new_j + new_i*COLS_MAX]
+        check_class = args[n_grid + new_j + new_i*cols_max]
 
     # Add focus to check_class
     if check_class:
-        current_idx = new_i * COLS_MAX + new_j
+        current_idx = new_i * cols_max + new_j
         new_classes[current_idx]= ' '.join(class_toggle_focus(new_classes[current_idx].split(' ')))
         cell_last_clicked = [new_i, new_j]
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
-def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
+def keep_delete_pressed(
+        button_id: str,
+        n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[html.Img], empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
 
     cell_last_clicked = args[-1]
-    new_classes = list(args[N_GRID:-1])
+    new_classes = list(args[n_grid:-1])
     if not cell_last_clicked:
         cell_last_clicked = [0,0]
     i, j = cell_last_clicked
-    idx = i * COLS_MAX + j
+    idx = i * cols_max + j
     my_class = new_classes[idx]
 
     # It must be in the group to be kept or deleted
@@ -530,7 +598,7 @@ def keep_delete_pressed(button_id, n_rows, n_cols, image_list, *args):
             new_classes[idx] = (' '.join(class_toggle_delete(my_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=config.IMG_STYLE_ZOOM) if len(image_list) > 0 else EMPTY_IMAGE
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
