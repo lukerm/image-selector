@@ -1,6 +1,6 @@
 # Image selector
 
-<> ![](deduplicate_demo.gif)
+<> ![](demo.gif)
 
 ## Overview
 
