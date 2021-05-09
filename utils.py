@@ -111,6 +111,19 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
             if datetime_str is not None:
                 return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
 
+        # Failed to obtain date from metadata, try to extract it from filename using regex
+        # This list should contain pairs of:
+        #   0) The regex to use on the filename, incl. a grouping around the useful date(time)
+        #   1) How to parse the found match with strptime
+        regex_parse_options = [('[A-Z]+-([0-9]{8})-WA[0-9]+', '%Y%m%d')]
+        for regex_pattern, parse_pattern in regex_parse_options:
+            match = re.search(regex_pattern, fname)
+            if match:
+                try:
+                    return datetime.strptime(match.group(1), parse_pattern)
+                except (ValueError, IndexError):
+                    continue
+
         return default_date
 
     except FileNotFoundError:
