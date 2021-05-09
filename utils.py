@@ -231,6 +231,7 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
 
     # Calculate the path where the image is backed up to (i.e. raw data)
     img_backup_path, _ = get_backup_path(image_path, image_backup_path)
+    img_backup_path = img_backup_path.replace(os.path.expanduser('~'), '~')  # save with soft-coded path
 
     df_to_send = pd.DataFrame({
         'group_id': [group_id] * N,
