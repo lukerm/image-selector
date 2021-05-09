@@ -745,3 +745,11 @@ def calc_percentage_complete(completed_groups: List[List[Any]], total_images: in
     pct_complete = round(100 * n_imgs_completed / total_images)
 
     return pct_complete
+
+
+def readable_filesize(num, suffix='B'):
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Y', suffix)
