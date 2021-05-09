@@ -394,6 +394,7 @@ def update_image_path_selector(contents_list, filenames_list):
 @app.callback(
     [
      Output('image-container', 'data'),
+     Output('image-size-container', 'data'),
      Output('loaded-image-path', 'data'),
      Output('n_images', 'data'),
     ],
@@ -451,21 +452,23 @@ def load_images(n, dropdown_value, dropdown_opts):
 
         # Sort the image list by date, earliest to latest
         image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
+        image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(config.EMPTY_IMG_PATH)
+            image_size_list.append("0KB")
 
     except FileNotFoundError:
-        return [], ['__ignore'], [0]
+        return [], [], ['__ignore'], [0]
 
     except FileExistsError:
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
     # Return a 3-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path, 2) number of images loaded
-    return image_list, [image_dir], [n_images]
+    return image_list, image_size_list, [image_dir], [n_images]
 
 
 @app.callback(
