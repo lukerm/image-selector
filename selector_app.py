@@ -345,6 +345,8 @@ app.layout = html.Div(
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
         # from the config (until the user loads a new image folder).
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
+        # Corresponding list of image sizes
+        dcc.Store(id='image-size-container', data=config.IMAGE_SIZES),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
         # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
         # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
