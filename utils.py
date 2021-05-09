@@ -459,16 +459,18 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def resize_grid_pressed(image_list, rows_max: int, cols_max: int, empty_image: html.Img, zoom_img_style: Dict[str, str]):
+def resize_grid_pressed(image_list: List[str], image_size_list: List[str], rows_max: int, cols_max: int, empty_image: html.Img, zoom_img_style: Dict[str, str]):
     class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
-    zoomed_img = html.Img(src=image_list[0], style=zoom_img_style) if len(image_list) > 0 else empty_image
+    zoomed_img = html.Img(src=image_list[0], style=zoom_img_style, title=image_size_list[0]) if len(image_list) > 0 else empty_image
     return class_names + [zoomed_img, [0,0]]
 
 
 def image_cell_pressed(
         button_id: str,
         n_cols: int, cols_max: int, n_grid: int,
-        image_list: List[html.Img], empty_image: html.Img,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
         zoom_img_style: Dict[str, str],
         *args
     ):
@@ -514,13 +516,15 @@ def image_cell_pressed(
     new_class_clicked = ' '.join(new_class_clicked)
     new_classes[idx] = new_class_clicked
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style, title=image_size_list[img_idx]) if len(image_list) > 0 else empty_image
     return new_classes,zoomed_img, cell_last_clicked
 
 
 def toggle_group_in_first_n_rows(
         row: int, n_cols: int, rows_max: int, cols_max: int,
-        image_list: List[html.Img], empty_image: html.Img,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
         zoom_img_style: Dict[str, str],
         *args
     ):
@@ -538,14 +542,16 @@ def toggle_group_in_first_n_rows(
             new_classes[cell_list_idx] = ' '.join(class_turn_off_keep_delete(class_toggle_grouped(previous_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style, title=image_size_list[img_idx]) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
 def direction_key_pressed(
         button_id: str,
         n_rows: int, n_cols: int, cols_max: int, n_grid: int,
-        image_list: List[html.Img], empty_image: html.Img,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
         zoom_img_style: Dict[str, str],
         *args
     ):
@@ -583,14 +589,16 @@ def direction_key_pressed(
         new_classes[current_idx]= ' '.join(class_toggle_focus(new_classes[current_idx].split(' ')))
         cell_last_clicked = [new_i, new_j]
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style, title=image_size_list[img_idx]) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
 def keep_delete_pressed(
         button_id: str,
         n_cols: int, cols_max: int, n_grid: int,
-        image_list: List[html.Img], empty_image: html.Img,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
         zoom_img_style: Dict[str, str],
         *args
     ):
@@ -612,7 +620,7 @@ def keep_delete_pressed(
             new_classes[idx] = (' '.join(class_toggle_delete(my_class.split(' '))))
 
     img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
-    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style) if len(image_list) > 0 else empty_image
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style, title=image_size_list[img_idx]) if len(image_list) > 0 else empty_image
     return new_classes, zoomed_img, cell_last_clicked
 
 
