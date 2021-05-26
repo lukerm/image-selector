@@ -453,6 +453,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         # Sort the image list by date, earliest to latest
         image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
         image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
+        assert len(image_list) == len(image_size_list), f"image_list = {len(image_list)}; image_size_list = {len(image_size_list)}"
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
@@ -774,6 +775,7 @@ def activate_deactivate_cells(
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
+    image_size_list = [size for i, size in enumerate(image_size_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
