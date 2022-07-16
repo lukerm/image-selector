@@ -73,6 +73,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 import flask
+import pandas as pd
 
 import utils
 import config
@@ -262,7 +263,7 @@ app.layout = html.Div(
                         children=utils.create_image_grid(
                             n_row=4, n_col=4,
                             rows_max=ROWS_MAX, cols_max=COLS_MAX,
-                            image_list=config.IMAGE_SRCS, empty_img_path=config.EMPTY_IMG_PATH
+                            image_list=[{'filename': img} for img in config.IMAGE_SRCS], empty_img_path=config.EMPTY_IMG_PATH
                         ),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
                         ),
@@ -398,6 +399,7 @@ def update_image_path_selector(contents_list, filenames_list):
     [
      Output('image-container', 'data'),
      Output('image-size-container', 'data'),
+     Output('image-prelabels', 'data'),
      Output('loaded-image-path', 'data'),
      Output('n_images', 'data'),
     ],
@@ -413,6 +415,13 @@ def load_images(n, dropdown_value, dropdown_opts):
         1) The image is copied to TMP_DIR, from where is can be served
         2) If in use, it is also copied to a subfolder of IMAGE_BACKUP_PATH, for data storage
         3) The image is loaded into memory in the image-container Store
+
+    Return a 5-tuple:
+      0) list of image locations
+      1) list of image sizes
+      2) list, of dict, containing pre-labels, each of format e.g. {'group_num': 3}
+      3) single-entry list containing the loaded path
+      4) single-entry list containing the number of images loaded
 
     These operations are only applied to image-like files (not videos), as defined by the extensions in IMAGE_TYPES
 
@@ -453,26 +462,46 @@ def load_images(n, dropdown_value, dropdown_opts):
                     shutil.copyfile(os.path.join(image_dir, fname), os.path.join(IMAGE_BACKUP_PATH, relative_path, fname))
                     #_ = utils.copy_image(fname, image_dir, os.path.join(IMAGE_BACKUP_PATH, relative_path), IMAGE_TYPES)
 
-        # Sort the image list by date, earliest to latest
-        image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
-        image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
-        assert len(image_list) == len(image_size_list), f"image_list = {len(image_list)}; image_size_list = {len(image_size_list)}"
+        if config.PRELABEL_RULE is None:
+            # Sort the image list by date, earliest to latest
+            image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
+            image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
+            assert len(image_list) == len(image_size_list), f"image_list = {len(image_list)}; image_size_list = {len(image_size_list)}"
+            image_prelabel_list = []
+
+        elif config.PRELABEL_RULE == 'GROUP_SAME_DAY_TAKEN':
+            image_list, image_datetimes = utils.sort_images_by_datetime(image_list, image_dir=image_dir, return_datetimes=True)
+            image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
+
+            # Make the groups using a groupby on the dates
+            df_datetime = pd.DataFrame(image_datetimes, columns=['datetime']).sort_values(by='datetime')
+            df_datetime['date'] = df_datetime['datetime'].apply(lambda dt: dt.date())
+            image_prelabel_list = []
+            for i, (_, group) in enumerate(df_datetime.groupby('date')):
+                image_prelabel_list.extend([{'group_num': i}] * len(group))
+            assert len(image_list) == len(image_prelabel_list), f"image_list = {len(image_list)}; image_prelabel_list = {len(image_prelabel_list)}"
+
+            # TODO: for future pre-labelling rules, it makes sense to sort the images into groups, and the groups should be ordered the member with the minimum
+            #       time; sort by time within groups
+            # Note: this is automatically the case when using GROUP_SAME_DAY_TAKEN rule, since the groups are themselves based on time
+
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(config.EMPTY_IMG_PATH)
             image_size_list.append("0KB")
+            if config.PRELABEL_RULE is not None:
+                image_prelabel_list.append({'group_num': 1_000_000})
 
     except FileNotFoundError:
-        return [], [], ['__ignore'], [0]
+        return [], [], [], ['__ignore'], [0]
 
     except FileExistsError:
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
-    # Return a 3-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path, 2) number of images loaded
-    return image_list, image_size_list, [image_dir], [n_images]
+    return image_list, image_size_list, image_prelabel_list, [image_dir], [n_images]
 
 
 @app.callback(
