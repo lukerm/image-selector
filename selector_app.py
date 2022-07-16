@@ -345,6 +345,8 @@ app.layout = html.Div(
         # Stores the list of image locations (sources) for a given directory - initially the default images are given
         # from the config (until the user loads a new image folder).
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
+        # Corresponding list of image sizes
+        dcc.Store(id='image-size-container', data=config.IMAGE_SIZES),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
         # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
         # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
@@ -392,6 +394,7 @@ def update_image_path_selector(contents_list, filenames_list):
 @app.callback(
     [
      Output('image-container', 'data'),
+     Output('image-size-container', 'data'),
      Output('loaded-image-path', 'data'),
      Output('n_images', 'data'),
     ],
@@ -449,21 +452,24 @@ def load_images(n, dropdown_value, dropdown_opts):
 
         # Sort the image list by date, earliest to latest
         image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
+        image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
+        assert len(image_list) == len(image_size_list), f"image_list = {len(image_list)}; image_size_list = {len(image_size_list)}"
         n_images = len(image_list)
 
         # Pad the image container with empty images if necessary
         while len(image_list) < ROWS_MAX*COLS_MAX:
             image_list.append(config.EMPTY_IMG_PATH)
+            image_size_list.append("0KB")
 
     except FileNotFoundError:
-        return [], ['__ignore'], [0]
+        return [], [], ['__ignore'], [0]
 
     except FileExistsError:
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
     # Return a 3-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path, 2) number of images loaded
-    return image_list, [image_dir], [n_images]
+    return image_list, image_size_list, [image_dir], [n_images]
 
 
 @app.callback(
@@ -713,6 +719,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('image-container', 'data'),
+         Input('image-size-container', 'data'),
          Input('image-meta-data', 'data'),
          Input('loaded-image-path', 'data'),
     ] + ALL_BUTTONS_IDS,
@@ -723,7 +730,7 @@ def activate_deactivate_cells(
         n_left, n_right, n_up, n_down,
         n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
         n_keep, n_delete,
-        image_list, image_data, image_path, *args
+        image_list, image_size_list, image_data, image_path, *args
     ):
     """
     Global callback function for toggling classes. There are three toggle modes:
@@ -745,6 +752,7 @@ def activate_deactivate_cells(
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         image_list = list, of str, specifying where the image files are stored
+        image_size_list = list, of str, specifying where the image sizes
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
         image_path = str, the filepath where the images in image-container were loaded from
 
@@ -767,6 +775,7 @@ def activate_deactivate_cells(
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
     image_list = [img for i, img in enumerate(image_list) if not flat_mask[i]]
+    image_size_list = [size for i, size in enumerate(image_size_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
@@ -783,9 +792,9 @@ def activate_deactivate_cells(
     # Reset the grid
     # Note: image-container is not really a button, but fired when confirm-load-directory is pressed (we need the list
     #       inside image-container in order to populate the grid)
-    if button_id in ['choose-grid-size', 'image-container', 'image-meta-data', 'loaded-image-path']:
+    if button_id in ['choose-grid-size', 'image-container',  'image-size-container', 'image-meta-data', 'loaded-image-path']:
         return utils.resize_grid_pressed(
-            image_list=image_list,
+            image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
             empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
         )
@@ -793,7 +802,7 @@ def activate_deactivate_cells(
     # Toggle the state of this button (as it was pressed)
     elif 'grid-button-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.image_cell_pressed(
-            button_id, n_cols, COLS_MAX, ROWS_MAX*COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+            button_id, n_cols, COLS_MAX, ROWS_MAX*COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
@@ -801,20 +810,20 @@ def activate_deactivate_cells(
     elif 'select-row-upto-' in button_id:
         n_rows = int(re.findall('select-row-upto-([0-9]+)-button', button_id)[0])
         current_classes, zoomed_img, cell_last_clicked = utils.toggle_group_in_first_n_rows(
-            n_rows, n_cols, ROWS_MAX, COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+            n_rows, n_cols, ROWS_MAX, COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     # Harder case: move focus in a particular direction
     elif 'move-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(
-            button_id, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+            button_id, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
     elif button_id in ['keep-button', 'delete-button']:
         current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
-            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
