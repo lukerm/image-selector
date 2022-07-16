@@ -664,9 +664,12 @@ def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, im
      Input('image-container', 'data'),
      Input('image-meta-data', 'data'),
     ],
-    [State('loaded-image-path', 'data'),]
+    [
+     State('loaded-image-path', 'data'),
+     State('image-prelabels', 'data'),
+    ]
 )
-def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path):
+def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path, image_prelabels):
     """
     Get an HTML element corresponding to the responsive image grid.
 
@@ -677,9 +680,13 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
         image_data = dict, with keys 'position' (for visible grid locations) and 'keep' (whether to keep / remove the image) (State)
                      Note: each keys contains a list, of lists of ints, a sequence of data about each completed image group
         image_path = list, of 1 str, the filepath where the images in image-container were loaded from
+        image_prelabels = list, of dict, representing per-image pre-labels about grouping info or whether they should be kept
+                     Note: must be the same length as image_list, and entries should correspond
+                     Note: an empty list implies no pre-labels were supplied and won't appear on the grid
 
     Returns: html.Div element (containing the grid of images) that can update the responsive-image-grid element
     """
+    assert len(image_prelabels) == 0 or len(image_prelabels) == len(image_list)
 
     image_path = image_path[0]
     # If it doesn't already exist, add an entry (dict) for this image path into the data dictionary
@@ -688,12 +695,27 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
 
     # Reduce the image_list by removing the masked images (so they can no longer appear in the image grid / image zoom)
     flat_mask = utils.create_flat_mask(image_data[image_path]['position'], len(image_list))
-    image_list = [img_src for i, img_src in enumerate(image_list) if not flat_mask[i]]
+    # Display the minimum available group number (defaults to -1 if image_prelabels aren't available)
+    group_to_display = min([prelabel['group_num'] for i, prelabel in enumerate(image_prelabels) if not flat_mask[i]]) if len(image_prelabels) > 0 else -1
+
+    masked_image_list = []
+    for i, img_src in enumerate(image_list):
+        if flat_mask[i]:
+            continue
+
+        grouped_on = False
+        if len(image_prelabels) > 0:
+            grouped_on = image_prelabels[i]['group_num'] == group_to_display
+
+        masked_image_list.append({
+            'filename': img_src,
+            'grouped-on': grouped_on,
+        })
 
     return utils.create_image_grid(
         n_row=n_row, n_col=n_col,
         rows_max=ROWS_MAX, cols_max=COLS_MAX,
-        image_list=image_list, empty_img_path=config.EMPTY_IMG_PATH,
+        image_list=masked_image_list, empty_img_path=config.EMPTY_IMG_PATH,
     )
 
 
