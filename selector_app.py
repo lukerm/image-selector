@@ -347,6 +347,9 @@ app.layout = html.Div(
         dcc.Store(id='image-container', data=config.IMAGE_SRCS),
         # Corresponding list of image sizes
         dcc.Store(id='image-size-container', data=config.IMAGE_SIZES),
+        # Store image pre-labels, such as which a priori group they belong to, or whether they are predicted to be kept or deleted
+        # Format: e.g. [{'group_num': 1}, {'group_num': 1}, {'group_num': 2}, ]
+        dcc.Store(id='image-prelabels', data=[]),
         # The underlying mask is a dict, where each entry contains data about a particular unique file directory where
         # images are stored. For each directory, there are three keys - 'position', 'keep' and 'filename' - where each
         # is a list of lists of (int / bool / str) representing image groups, in time order. This data structure can be
