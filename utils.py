@@ -11,7 +11,7 @@ import shutil
 import subprocess
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from sqlalchemy import create_engine
 from PIL import Image
@@ -400,7 +400,7 @@ def undo_last_group(
 # Grid tools #
 
 
-def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str):
+def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[Dict[str, Union[str, bool]]], empty_img_path: str):
     """
     Create a grid of the same image with n_row rows and n_col columns
 
@@ -408,13 +408,17 @@ def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, imag
     :param n_col: int, the current number of columns visible
     :param rows_max: int, the maximum available number of rows (e.g. see config.py)
     :param cols_max: int, the maximum available number of columns (e.g. see config.py)
-    :param image_list: list, of str, filepaths of the images
+    :param image_list: list, of dict, str -> str / bool, e.g.
+        [
+            {'filename': 'img1.jpg', 'grouped-on': True},
+            {'filename': 'img2.jpg', 'grouped-on': False},
+        ]
     :param empty_img_path: str, full filepath to where the empty / default image can be served from (for padding the grid)
     :return: html.Div, containing a grid of images of size n_row x n_col
     """
 
     if len(image_list) < rows_max * cols_max:
-        image_list = image_list + [empty_img_path] * (rows_max * cols_max - len(image_list))
+        image_list = image_list + [{'filename': empty_img_path}] * (rows_max * cols_max - len(image_list))
 
     grid = []
     for i in range(rows_max):
@@ -438,8 +442,11 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
         td_style = {'padding': 5}
         button_style = {'padding': 0, 'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto'}
 
+    image_entry = image_list[y + x * n_y]
+    image = image_entry['filename']
+    grouped_on = image_entry.get('grouped-on', False)
+
     my_id = f'{x}-{y}'
-    image = image_list[y + x*n_y]
     style = {
         'display': 'block',
         'height': 'auto',
@@ -449,8 +456,12 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
     }
     image = html.Img(src=image, style=style)
 
+    class_name = 'grouped-on' if grouped_on else 'grouped-off'
+    if sum((x, y)) == 0:
+        class_name += ' focus'
+
     return html.Td(id='grid-td-' + my_id,
-                   className='grouped-off' if x or y else 'grouped-off focus',
+                   className=class_name,
                    children=html.Button(id='grid-button-' + my_id,
                                         children=image,
                                         style=button_style,
