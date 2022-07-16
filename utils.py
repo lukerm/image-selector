@@ -130,7 +130,7 @@ def get_image_taken_date(image_dir, fname, default_date=datetime.today() + timed
         return None
 
 
-def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -> List[str]:
+def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None, return_datetimes: bool = False) -> List[str]:
     """
     Sort images by time taken (ascending, i.e. earliest to latest).
 
@@ -144,7 +144,11 @@ def sort_images_by_datetime(image_filepaths: List[str], image_dir: str = None) -
         image_datetimes.append(get_image_taken_date(image_dir if image_dir else my_dir, filename))
 
     sorted_images = [img for img, _ in sorted(list(zip(image_filepaths, image_datetimes)), key=lambda x: x[1])]
-    return sorted_images
+
+    if return_datetimes:
+        return sorted_images, image_datetimes
+    else:
+        return sorted_images
 
 
 def get_image_rotation(image_dir, fname):
