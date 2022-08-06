@@ -3,9 +3,9 @@ Store variables needed across the project
 """
 
 import os
-import dash_html_components as html
-
 from datetime import date, datetime
+
+from dash import html
 
 import utils
 
