@@ -1,0 +1,2 @@
+There is a strange behaviour - in normal mode, the automatic images disappear almost straight away, when they shouldn't.
+In demo mode, this doesn't happen, which is good. Ideally, we'd have the same behaviour in both cases.
