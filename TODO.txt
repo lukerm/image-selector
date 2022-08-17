@@ -1,2 +1,5 @@
 There is a strange behaviour - in normal mode, the automatic images disappear almost straight away, when they shouldn't.
 In demo mode, this doesn't happen, which is good. Ideally, we'd have the same behaviour in both cases.
+
+We seem to have lost the shortcut where we can Ctrl-C the top left element - this might be because it has class 'grouped-on focus' rather than just 'focus'
+ which was the case before
