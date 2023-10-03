@@ -278,6 +278,7 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
 
     # Calculate the path where the image is backed up to (i.e. raw data)
     img_backup_path, _ = get_backup_path(image_path, image_backup_path)
+    img_backup_path = img_backup_path.replace(os.path.expanduser('~'), '~')  # save with soft-coded path (cf commit 2743a7ab)
 
     delete_query = f'''
                     DELETE FROM {database_table}
