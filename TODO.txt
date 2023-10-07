@@ -3,5 +3,3 @@ In demo mode, this doesn't happen, which is good. Ideally, we'd have the same be
 
 We seem to have lost the shortcut where we can Ctrl-C the top left element - this might be because it has class 'grouped-on focus' rather than just 'focus'
  which was the case before
-
-The undo function does not work completely - it loads the images back into the grid, but does _not_ delete the corresponding entries from the database!
