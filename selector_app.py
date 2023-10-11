@@ -781,7 +781,7 @@ def activate_deactivate_cells(
     context = dash.callback_context
     if not context.triggered:
         return utils.resize_grid_pressed(
-            image_list=image_list,
+            image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
             empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
         )
