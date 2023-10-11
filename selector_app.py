@@ -779,7 +779,7 @@ def activate_deactivate_cells(
 
     # Find the button that triggered this callback (if any)
     context = dash.callback_context
-    if not context.triggered:
+    if not context.triggered or not any([prop['value'] for prop in context.triggered]):
         return utils.resize_grid_pressed(
             image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
