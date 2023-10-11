@@ -681,6 +681,11 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     Returns: html.Div element (containing the grid of images) that can update the responsive-image-grid element
     """
 
+    context = dash.callback_context
+    print('=====')
+    print(context.triggered)
+    print('=====')
+
     image_path = image_path[0]
     # If it doesn't already exist, add an entry (dict) for this image path into the data dictionary
     if image_path not in image_data:
