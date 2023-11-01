@@ -339,6 +339,33 @@ app.layout = html.Div(
                     style={'width': '10vw', }
                 )
             ]),
+            # Jump right buttons
+            html.Td([
+                html.Button(id='jump-right-2-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-3-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-4-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-5-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-6-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-7-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-8-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-9-cells-button', style={'width': '10vw', })
+            ]),
+
+            #
         ], style={'display': 'none'}),
         # Store the number of images
         dcc.Store(id='n_images', data=[config.N_IMG_SRCS]),
