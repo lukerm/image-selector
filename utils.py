@@ -594,6 +594,40 @@ def direction_key_pressed(
     return new_classes, zoomed_img, cell_last_clicked
 
 
+def jump_focus_n_cells(
+        jump_left: bool, n_cells: int,
+        n_rows: int, n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
+    # Get the last clicked cell from args
+    cell_last_clicked = args[-1]
+
+    # Get the classes from args and only change the value of the affected cell
+    new_classes = list(args[n_grid:-1])
+    if not cell_last_clicked:
+        cell_last_clicked = [0,0]
+    i_src, j_src = cell_last_clicked
+    idx_src = i_src * cols_max + j_src
+    my_class = new_classes[idx_src]
+
+    i_dest = i_src
+    j_dest = (j_src - n_cells) % n_cols if jump_left else (j_src + n_cells) % n_cols
+    idx_dest = i_dest * cols_max + j_dest
+
+    assert 'focus' in my_class
+    new_classes[idx_src] = ' '.join(class_toggle_focus(my_class.split(' ')))  # remove focus from original cell
+    class_dest = new_classes[idx_dest]
+    new_classes[idx_dest] = ' '.join(class_toggle_focus(class_dest.split(' ')))  # add focus to destination cell
+
+    cell_last_clicked = [i_dest, j_dest]
+    zoomed_img = html.Img(src=image_list[idx_dest], style=zoom_img_style, title=image_size_list[idx_dest]) if len(image_list) > 0 else empty_image
+    return new_classes, zoomed_img, cell_last_clicked
+
+
 def keep_delete_pressed(
         button_id: str,
         n_cols: int, cols_max: int, n_grid: int,
