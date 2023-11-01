@@ -625,6 +625,34 @@ def keep_delete_pressed(
     return new_classes, zoomed_img, cell_last_clicked
 
 
+def group_ungroup_key_pressed(
+        button_id: str,
+        n_cols: int, cols_max: int, n_grid: int,
+        image_list: List[str],
+        image_size_list: List[str],
+        empty_image: html.Img,
+        zoom_img_style: Dict[str, str],
+        *args
+    ):
+
+    cell_last_clicked = args[-1]
+    new_classes = list(args[n_grid:-1])
+    if not cell_last_clicked:
+        cell_last_clicked = [0, 0]
+    i, j = cell_last_clicked
+    idx = i * cols_max + j
+    my_class = new_classes[idx]
+
+    # Toggle the group either on or off
+    assert 'focus' in my_class
+    assert 'group' in button_id
+    new_classes[idx] = (' '.join(class_toggle_grouped(my_class.split(' '))))
+
+    img_idx = cell_last_clicked[1] + cell_last_clicked[0]*n_cols
+    zoomed_img = html.Img(src=image_list[img_idx], style=zoom_img_style, title=image_size_list[img_idx]) if len(image_list) > 0 else empty_image
+    return new_classes, zoomed_img, cell_last_clicked
+
+
 # Class-name functions #
 
 def class_toggle_grouped(class_list):
