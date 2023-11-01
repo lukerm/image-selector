@@ -31,6 +31,31 @@ function clickButtonFunction(event){
   if(event.key == 'Z'){
     document.getElementById("undo-button").click();
   }
+  // Note: important that these ctrl+X shortcuts come before simple X ones (b/c using ifs not else ifs)
+  if (event.ctrlKey && event.key === '2') {
+    document.getElementById("jump-right-2-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '3') {
+    document.getElementById("jump-right-3-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '4') {
+    document.getElementById("jump-right-4-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '5') {
+    document.getElementById("jump-right-5-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '6') {
+    document.getElementById("jump-right-6-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '7') {
+    document.getElementById("jump-right-7-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '8') {
+    document.getElementById("jump-right-8-cells-button").click();
+  }
+  if (event.ctrlKey && event.key === '9') {
+    document.getElementById("jump-right-9-cells-button").click();
+  }
   if(event.key == '1'){
     document.getElementById("select-row-upto-1-button").click();
   }
