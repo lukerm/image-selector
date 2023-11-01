@@ -252,6 +252,7 @@ app.layout = html.Div(
             html.Div([
                 html.Button(id='keep-button', children='Keep'),
                 html.Button(id='delete-button', children='Delete'),
+                html.Button(id='group-button', children='Group'),
             ], style={'display': 'none', 'height': 'auto'}),
         ], style={'height': '17vh'}),
         html.Div([
