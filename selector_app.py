@@ -719,6 +719,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('select-row-upto-1000-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
+         Input('group-button', 'n_clicks'),
          Input('image-container', 'data'),
          Input('image-size-container', 'data'),
          Input('image-meta-data', 'data'),
@@ -730,7 +731,7 @@ def activate_deactivate_cells(
         n_rows, n_cols,
         n_left, n_right, n_up, n_down,
         n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
-        n_keep, n_delete,
+        n_keep, n_delete, n_group,
         image_list, image_size_list, image_data, image_path, *args
     ):
     """
@@ -752,6 +753,7 @@ def activate_deactivate_cells(
         n_row1,..9,1000 = int, number of clicks on the 'select row *' button (indicates shortcut to select many rows)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
+        n_group = int, number of clicks on the 'group-button' button
         image_list = list, of str, specifying where the image files are stored
         image_size_list = list, of str, specifying where the image sizes
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
@@ -824,6 +826,12 @@ def activate_deactivate_cells(
 
     elif button_id in ['keep-button', 'delete-button']:
         current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
+            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
+        return current_classes + [zoomed_img, cell_last_clicked]
+
+    elif button_id in ['group-button']:
+        current_classes, zoomed_img, cell_last_clicked = utils.group_ungroup_key_pressed(
             button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
