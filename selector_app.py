@@ -27,7 +27,7 @@ must be on the image itself.) You can remove an image from a group by double cli
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
-have it) or by moving the current highlighted cell around with the directional buttons / keys.
+have it) or by moving the current highlighted cell around with the directional buttons / keys (see Shortcuts).
 
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
 or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
