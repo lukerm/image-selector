@@ -24,15 +24,17 @@ with grouped-on and it currently draws a red square around it. Together, the cel
 of images. Those that are 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
 A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it. (It
 must be on the image itself.) You can remove an image from a group by double clicking on it.
+Note: you can also use the 'g' button to toggle grouped on / off when a cell has focus.
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
-or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
-an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
-saving; and backspace or 'd' key for deletion. (Click the Shortcuts button to see all available.)
+or not. Navigate to the image (directional keys or by clicking), then choose to 'keep' it by pressing the '=' or 's'
+key or 'delete' it by pressing backspace or 'd' key. Choosing either one of these will add an additional thicker green
+or red border (respectively).
+Note: there used to be visible buttons for keep / delete options, but now they are just virtual to enable shortcuts.
 
 Once you've marked all the grouped images up for keeping or deleting, check you're happy with the labels, then finalize
 your choices by clicking 'Complete group'. There is currently no shortcut key for this operation. You must have marked
