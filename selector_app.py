@@ -132,6 +132,11 @@ app.layout = html.Div(
                             html.Td("Move focus up / down")
                         ]),
                         html.Tr([
+                            html.Td("g"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Add or remove image from group")
+                        ]),
+                        html.Tr([
                             html.Td("s / ="),
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Mark image for keeping")
