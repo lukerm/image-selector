@@ -34,25 +34,6 @@ function clickButtonFunction(event){
   if(event.key == 'Z'){
     document.getElementById("undo-button").click();
   }
-  // Note: important that these ctrl+X shortcuts come before simple X ones (b/c using ifs not else ifs)
-  if (event.key === 'q') {
-    document.getElementById("jump-right-2-cells-button").click();
-  }
-  if (event.key === 'w') {
-    document.getElementById("jump-right-3-cells-button").click();
-  }
-  if (event.key === 'e') {
-    document.getElementById("jump-right-4-cells-button").click();
-  }
-  if (event.key === 'r') {
-    document.getElementById("jump-right-5-cells-button").click();
-  }
-  if (event.key === 't') {
-    document.getElementById("jump-right-6-cells-button").click();
-  }
-  if (event.key === 'y') {
-    document.getElementById("jump-right-7-cells-button").click();
-  }
   if(event.key == '1'){
     document.getElementById("select-row-upto-1-button").click();
   }
@@ -85,5 +66,23 @@ function clickButtonFunction(event){
   }
   if(event.key == 'A'){
     document.getElementById("select-row-upto-1000-button").click();
+  }
+  if (event.key === 'q') {
+    document.getElementById("jump-right-2-cells-button").click();
+  }
+  if (event.key === 'w') {
+    document.getElementById("jump-right-3-cells-button").click();
+  }
+  if (event.key === 'e') {
+    document.getElementById("jump-right-4-cells-button").click();
+  }
+  if (event.key === 'r') {
+    document.getElementById("jump-right-5-cells-button").click();
+  }
+  if (event.key === 't') {
+    document.getElementById("jump-right-6-cells-button").click();
+  }
+  if (event.key === 'y') {
+    document.getElementById("jump-right-7-cells-button").click();
   }
 }
