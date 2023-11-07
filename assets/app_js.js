@@ -85,4 +85,22 @@ function clickButtonFunction(event){
   if (event.key === 'y') {
     document.getElementById("jump-right-7-cells-button").click();
   }
+  if (event.key === 'Q') {
+    document.getElementById("jump-left-2-cells-button").click();
+  }
+  if (event.key === 'W') {
+    document.getElementById("jump-left-3-cells-button").click();
+  }
+  if (event.key === 'E') {
+    document.getElementById("jump-left-4-cells-button").click();
+  }
+  if (event.key === 'R') {
+    document.getElementById("jump-left-5-cells-button").click();
+  }
+  if (event.key === 'T') {
+    document.getElementById("jump-left-6-cells-button").click();
+  }
+  if (event.key === 'Y') {
+    document.getElementById("jump-left-7-cells-button").click();
+  }
 }
