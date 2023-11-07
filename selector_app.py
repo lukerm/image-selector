@@ -134,6 +134,16 @@ app.layout = html.Div(
                             html.Td("Move focus up / down")
                         ]),
                         html.Tr([
+                            html.Td("Q,W,E,R,T,Y"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus 2,3,4,5,6,7 cells left")
+                        ]),
+                        html.Tr([
+                            html.Td("q,w,e,r,t,y"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus 2,3,4,5,6,7 cells right")
+                        ]),
+                        html.Tr([
                             html.Td("g"),
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Add or remove image from group")
