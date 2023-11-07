@@ -24,15 +24,17 @@ with grouped-on and it currently draws a red square around it. Together, the cel
 of images. Those that are 'grouped-off' will (often) have no border, with one exception (i.e. having 'focus' - see below).
 A cell can have 'grouped-on' or 'grouped-off' but not both. You make an image part of the group by clicking on it. (It
 must be on the image itself.) You can remove an image from a group by double clicking on it.
+Note: you can also use the 'g' button to toggle grouped on / off when a cell has focus.
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
 have it) or by moving the current highlighted cell around with the directional buttons / keys.
 
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
-or not. Navigate to the image (directional keys or by clicking), then choose the 'Keep' or 'Delete' button to mark with
-an additional thicker green or red border (respectively). For ease, you can also use the '=' or 's' key for keeping /
-saving; and backspace or 'd' key for deletion. (Click the Shortcuts button to see all available.)
+or not. Navigate to the image (directional keys or by clicking), then choose to 'keep' it by pressing the '=' or 's'
+key or 'delete' it by pressing backspace or 'd' key. Choosing either one of these will add an additional thicker green
+or red border (respectively).
+Note: there used to be visible buttons for keep / delete options, but now they are just virtual to enable shortcuts.
 
 Once you've marked all the grouped images up for keeping or deleting, check you're happy with the labels, then finalize
 your choices by clicking 'Complete group'. There is currently no shortcut key for this operation. You must have marked
@@ -130,6 +132,11 @@ app.layout = html.Div(
                             html.Td("↑/↓"),
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Move focus up / down")
+                        ]),
+                        html.Tr([
+                            html.Td("g"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Add or remove image from group")
                         ]),
                         html.Tr([
                             html.Td("s / ="),
@@ -252,6 +259,7 @@ app.layout = html.Div(
             html.Div([
                 html.Button(id='keep-button', children='Keep'),
                 html.Button(id='delete-button', children='Delete'),
+                html.Button(id='group-button', children='Group'),
             ], style={'display': 'none', 'height': 'auto'}),
         ], style={'height': '17vh'}),
         html.Div([
@@ -718,6 +726,7 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('select-row-upto-1000-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
+         Input('group-button', 'n_clicks'),
          Input('image-container', 'data'),
          Input('image-size-container', 'data'),
          Input('image-meta-data', 'data'),
@@ -729,7 +738,7 @@ def activate_deactivate_cells(
         n_rows, n_cols,
         n_left, n_right, n_up, n_down,
         n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
-        n_keep, n_delete,
+        n_keep, n_delete, n_group,
         image_list, image_size_list, image_data, image_path, *args
     ):
     """
@@ -751,6 +760,7 @@ def activate_deactivate_cells(
         n_row1,..9,1000 = int, number of clicks on the 'select row *' button (indicates shortcut to select many rows)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
+        n_group = int, number of clicks on the 'group-button' button
         image_list = list, of str, specifying where the image files are stored
         image_size_list = list, of str, specifying where the image sizes
         image_data = dict, of dict of lists of ints, a sequence of metadata about completed image groups
@@ -823,6 +833,12 @@ def activate_deactivate_cells(
 
     elif button_id in ['keep-button', 'delete-button']:
         current_classes, zoomed_img, cell_last_clicked = utils.keep_delete_pressed(
+            button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
+        return current_classes + [zoomed_img, cell_last_clicked]
+
+    elif button_id in ['group-button']:
+        current_classes, zoomed_img, cell_last_clicked = utils.group_ungroup_key_pressed(
             button_id, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
