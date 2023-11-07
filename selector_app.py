@@ -366,12 +366,6 @@ app.layout = html.Div(
             html.Td([
                 html.Button(id='jump-right-7-cells-button', style={'width': '10vw', })
             ]),
-            html.Td([
-                html.Button(id='jump-right-8-cells-button', style={'width': '10vw', })
-            ]),
-            html.Td([
-                html.Button(id='jump-right-9-cells-button', style={'width': '10vw', })
-            ]),
 
             #
         ], style={'display': 'none'}),
@@ -757,8 +751,6 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('jump-right-5-cells-button', 'n_clicks'),
          Input('jump-right-6-cells-button', 'n_clicks'),
          Input('jump-right-7-cells-button', 'n_clicks'),
-         Input('jump-right-8-cells-button', 'n_clicks'),
-         Input('jump-right-9-cells-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('group-button', 'n_clicks'),
@@ -773,7 +765,7 @@ def activate_deactivate_cells(
         n_rows, n_cols,
         n_left, n_right, n_up, n_down,
         n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
-        n_jump_r2, n_jump_r3, n_jump_r4, n_jump_r5, n_jump_r6, n_jump_r7, n_jump_r8, n_jump_r9,
+        n_jump_r2, n_jump_r3, n_jump_r4, n_jump_r5, n_jump_r6, n_jump_r7,
         n_keep, n_delete, n_group,
         image_list, image_size_list, image_data, image_path, *args
     ):
@@ -794,7 +786,7 @@ def activate_deactivate_cells(
         n_up = int, number of clicks on the 'move-up' button (indicates shifting)
         n_down = int, number of clicks on the 'move-down' button (indicates shifting)
         n_row1,..9,1000 = int, number of clicks on the 'select row *' button (indicates shortcut to select many rows)
-        n_jump_r1,..9 = int, number of clicks on the 'jump right *' button (indicates shortcut to jump several cells)
+        n_jump_r1,..7 = int, number of clicks on the 'jump right *' button (indicates shortcut to jump several cells)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         n_group = int, number of clicks on the 'group-button' button

@@ -53,12 +53,6 @@ function clickButtonFunction(event){
   if (event.key === 'y') {
     document.getElementById("jump-right-7-cells-button").click();
   }
-  if (event.key === 'u') {
-    document.getElementById("jump-right-8-cells-button").click();
-  }
-  if (event.key === 'i') {
-    document.getElementById("jump-right-9-cells-button").click();
-  }
   if(event.key == '1'){
     document.getElementById("select-row-upto-1-button").click();
   }
