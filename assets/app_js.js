@@ -1,4 +1,4 @@
-document.addEventListener("keyup", clickButtonFunction);
+document.addEventListener("keydown", clickButtonFunction);
 
 function clickButtonFunction(event){
   if(event.key == 'ArrowLeft'){
