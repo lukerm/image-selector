@@ -28,7 +28,7 @@ Note: you can also use the 'g' button to toggle grouped on / off when a cell has
 
 Additionally, one cell can have the special 'focus' class (currently blue border). This applies to one cell -
 another cell will lose this when it is superceded. This class is achieved by clicking on a cell (that doesn't already
-have it) or by moving the current highlighted cell around with the directional buttons / keys.
+have it) or by moving the current highlighted cell around with the directional buttons / keys (see Shortcuts).
 
 Once you've chosen the images in the group, you should begin to label those images with whether you want to keep them
 or not. Navigate to the image (directional keys or by clicking), then choose to 'keep' it by pressing the '=' or 's'
@@ -132,6 +132,16 @@ app.layout = html.Div(
                             html.Td("↑/↓"),
                             html.Td("\t\t\t\t\t\t"),
                             html.Td("Move focus up / down")
+                        ]),
+                        html.Tr([
+                            html.Td("Q,W,E,R,T,Y"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus 2,3,4,5,6,7 cells left")
+                        ]),
+                        html.Tr([
+                            html.Td("q,w,e,r,t,y"),
+                            html.Td("\t\t\t\t\t\t"),
+                            html.Td("Move focus 2,3,4,5,6,7 cells right")
                         ]),
                         html.Tr([
                             html.Td("g"),
@@ -346,6 +356,44 @@ app.layout = html.Div(
                     id='select-row-upto-1000-button',
                     style={'width': '10vw', }
                 )
+            ]),
+            # Jump right buttons
+            html.Td([
+                html.Button(id='jump-right-2-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-3-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-4-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-5-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-6-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-right-7-cells-button', style={'width': '10vw', })
+            ]),
+            # Jump left buttons
+            html.Td([
+                html.Button(id='jump-left-2-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-left-3-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-left-4-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-left-5-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-left-6-cells-button', style={'width': '10vw', })
+            ]),
+            html.Td([
+                html.Button(id='jump-left-7-cells-button', style={'width': '10vw', })
             ]),
         ], style={'display': 'none'}),
         # Store the number of images
@@ -724,6 +772,18 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
          Input('select-row-upto-8-button', 'n_clicks'),
          Input('select-row-upto-9-button', 'n_clicks'),
          Input('select-row-upto-1000-button', 'n_clicks'),
+         Input('jump-right-2-cells-button', 'n_clicks'),
+         Input('jump-right-3-cells-button', 'n_clicks'),
+         Input('jump-right-4-cells-button', 'n_clicks'),
+         Input('jump-right-5-cells-button', 'n_clicks'),
+         Input('jump-right-6-cells-button', 'n_clicks'),
+         Input('jump-right-7-cells-button', 'n_clicks'),
+         Input('jump-left-2-cells-button', 'n_clicks'),
+         Input('jump-left-3-cells-button', 'n_clicks'),
+         Input('jump-left-4-cells-button', 'n_clicks'),
+         Input('jump-left-5-cells-button', 'n_clicks'),
+         Input('jump-left-6-cells-button', 'n_clicks'),
+         Input('jump-left-7-cells-button', 'n_clicks'),
          Input('keep-button', 'n_clicks'),
          Input('delete-button', 'n_clicks'),
          Input('group-button', 'n_clicks'),
@@ -738,6 +798,8 @@ def activate_deactivate_cells(
         n_rows, n_cols,
         n_left, n_right, n_up, n_down,
         n_row1, n_row2, n_row3, n_row4, n_row5, n_row6, n_row7, n_row8, n_row9, n_row1000,
+        n_jump_r2, n_jump_r3, n_jump_r4, n_jump_r5, n_jump_r6, n_jump_r7,
+        n_jump_l2, n_jump_l3, n_jump_l4, n_jump_l5, n_jump_l6, n_jump_l7,
         n_keep, n_delete, n_group,
         image_list, image_size_list, image_data, image_path, *args
     ):
@@ -758,6 +820,8 @@ def activate_deactivate_cells(
         n_up = int, number of clicks on the 'move-up' button (indicates shifting)
         n_down = int, number of clicks on the 'move-down' button (indicates shifting)
         n_row1,..9,1000 = int, number of clicks on the 'select row *' button (indicates shortcut to select many rows)
+        n_jump_r1,..7 = int, number of clicks on the 'jump right *' button (indicates shortcut to jump several cells)
+        n_jump_l1,..7 = int, number of clicks on the 'jump left *' button (indicates shortcut to jump several cells)
         n_keep = int, number of clicks on the 'keep-button' button
         n_delete = int, number of clicks on the 'delete-button' button
         n_group = int, number of clicks on the 'group-button' button
@@ -828,6 +892,16 @@ def activate_deactivate_cells(
     elif 'move-' in button_id:
         current_classes, zoomed_img, cell_last_clicked = utils.direction_key_pressed(
             button_id, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
+        )
+        return current_classes + [zoomed_img, cell_last_clicked]
+
+    elif 'jump-' in button_id:
+        jump_left = 'left-' in button_id
+        n_cells_patt = 'jump-left-([0-9]+)-cells-button' if jump_left else 'jump-right-([0-9]+)-cells-button'
+        n_cells = int(re.findall(n_cells_patt, button_id)[0])
+
+        current_classes, zoomed_img, cell_last_clicked = utils.jump_focus_n_cells(
+            jump_left, n_cells, n_rows, n_cols, COLS_MAX, ROWS_MAX * COLS_MAX, image_list, image_size_list, EMPTY_IMAGE, config.IMG_STYLE_ZOOM, *args
         )
         return current_classes + [zoomed_img, cell_last_clicked]
 
