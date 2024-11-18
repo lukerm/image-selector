@@ -460,8 +460,42 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
                    )
 
 
-def resize_grid_pressed(image_list: List[str], image_size_list: List[str], rows_max: int, cols_max: int, empty_image: html.Img, zoom_img_style: Dict[str, str]):
-    class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
+def resize_grid_pressed(
+    image_list: List[str], image_size_list: List[str], rows_max: int, cols_max: int, empty_image: html.Img, zoom_img_style: Dict[str, str],
+    n_rows: int, n_cols: int, pregroup_func_name: str = None,
+):
+    if pregroup_func_name == 'DAILY':
+        date_re = re.compile(r'_([0-9]{8})_')
+        print(f'{len(image_list)=}')
+        first_date = date_re.search(image_list[0])
+        if first_date:
+            first_date = first_date.group(1)
+            class_names = []
+            for i in range(rows_max):
+                for j in range(cols_max):
+                    img_idx = j + i * n_cols
+                    # the index is larger than the number of images
+                    if img_idx >= len(image_list):
+                        class_names.append('grouped-off')
+                        continue
+                    my_re_result = date_re.search(image_list[img_idx])
+                    # the index is not in the visible region (i.e. hidden cells)
+                    if i >= n_rows or j >= n_cols:
+                        class_names.append('grouped-off')
+                    elif i == j == 0:
+                        class_names.append('grouped-on focus')
+                    # there's a date match in this case
+                    elif my_re_result and my_re_result.group(1) == first_date:
+                        class_names.append('grouped-on')
+                    else:
+                        class_names.append('grouped-off')
+
+        else:
+            # No date found => fall back to focus only on first grid cell
+            class_names = ['grouped-off focus' if i + j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
+    else:
+        class_names = ['grouped-off focus' if i+j == 0 else 'grouped-off' for i in range(rows_max) for j in range(cols_max)]
+
     zoomed_img = html.Img(src=image_list[0], style=zoom_img_style, title=image_size_list[0]) if len(image_list) > 0 else empty_image
     return class_names + [zoomed_img, [0,0]]
 
