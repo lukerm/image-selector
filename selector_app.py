@@ -509,6 +509,10 @@ def load_images(n, dropdown_value, dropdown_opts):
         # Sort the image list by date, earliest to latest
         image_list = utils.sort_images_by_datetime(image_list, image_dir=image_dir)
         image_size_list = [utils.readable_filesize(os.path.getsize(os.path.join(image_dir, os.path.split(image_filename)[-1]))) for image_filename in image_list]
+        import re
+        from datetime import datetime
+        date_re = re.compile(r'_([0-9]{8})_')
+        image_size_list = [f'{datetime.strptime(date_re.search(img).group(1), "%Y%m%d").date()} ({image_size_list[i]})' if date_re.search(img) else image_size_list[i] for i, img in enumerate(image_list)]
         assert len(image_list) == len(image_size_list), f"image_list = {len(image_list)}; image_size_list = {len(image_size_list)}"
         n_images = len(image_list)
 
