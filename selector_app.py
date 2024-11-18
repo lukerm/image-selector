@@ -524,7 +524,7 @@ def load_images(n, dropdown_value, dropdown_opts):
         print(f'This folder has been worked on previously: {image_dir}')
         raise
 
-    # Return a 3-tuple: 0) is a list of image locations; 1) is a single-entry list containing the loaded path, 2) number of images loaded
+    # Return a 4-tuple: 0) is a list of image locations; 1) list of image sizes; 2) is a single-entry list containing the loaded path, 2) number of images loaded
     return image_list, image_size_list, [image_dir], [n_images]
 
 
