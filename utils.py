@@ -401,7 +401,9 @@ def undo_last_group(
 # Grid tools #
 
 
-def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str):
+def create_image_grid(
+    n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str, pregroup_func_name: str = None,
+):
     """
     Create a grid of the same image with n_row rows and n_col columns
 
@@ -411,25 +413,40 @@ def create_image_grid(n_row: int, n_col: int, rows_max: int, cols_max: int, imag
     :param cols_max: int, the maximum available number of columns (e.g. see config.py)
     :param image_list: list, of str, filepaths of the images
     :param empty_img_path: str, full filepath to where the empty / default image can be served from (for padding the grid)
+    :param pregroup_func_name: str, the identifier name of the function to use for pre-grouping images (e.g. 'DAILY')
     :return: html.Div, containing a grid of images of size n_row x n_col
     """
 
     if len(image_list) < rows_max * cols_max:
         image_list = image_list + [empty_img_path] * (rows_max * cols_max - len(image_list))
 
+    pregrouped_images = []  # This will collect the images that need to be pre-grouped
+    if pregroup_func_name is None:
+        pass
+    elif pregroup_func_name == 'DAILY':
+        date_re = re.compile(r'_([0-9]{8})_')
+        first_date = date_re.search(image_list[0])
+        if first_date:
+            first_date = first_date.group(1)
+            for img_fname in image_list:
+                my_re_result = date_re.search(img_fname)
+                # the index is not in the visible region (i.e. hidden cells)
+                if my_re_result and my_re_result.group(1) == first_date:
+                    pregrouped_images.append(img_fname)
+
     grid = []
     for i in range(rows_max):
         row = []
         for j in range(cols_max):
             hidden = (i >= n_row) or (j >= n_col)
-            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden))
+            row.append(get_grid_element(image_list, i, j, n_row, n_col, hidden, pregrouped_images))
         row = html.Tr(row)
         grid.append(row)
 
     return html.Div(html.Table(grid))
 
 
-def get_grid_element(image_list, x, y, n_x, n_y, hidden):
+def get_grid_element(image_list, x, y, n_x, n_y, hidden, pregrouped_images: List[str] = None):
 
     # Set the display to none if this grid cell is hidden
     if hidden:
@@ -448,10 +465,15 @@ def get_grid_element(image_list, x, y, n_x, n_y, hidden):
         'max-height': f'{65 // n_x}vh', # < 75vh (see layout) due to the padding
         'max-width': f'{50 // n_y}vw',
     }
+
+    className = 'grouped-off' if x or y else 'grouped-off focus'
+    if pregrouped_images is not None and image in pregrouped_images:
+        className = 'grouped-on' if x or y else 'grouped-on focus'
+
     image = html.Img(src=image, style=style)
 
     return html.Td(id='grid-td-' + my_id,
-                   className='grouped-off' if x or y else 'grouped-off focus',
+                   className=className,
                    children=html.Button(id='grid-button-' + my_id,
                                         children=image,
                                         style=button_style,
