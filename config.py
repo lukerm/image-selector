@@ -55,3 +55,5 @@ META_DATA_FPATH = os.path.join(IMAGE_BACKUP_PATH, '_session_data', META_DATA_FNA
 DATABASE_NAME = 'deduplicate'
 DATABASE_URI = f'postgresql:///{DATABASE_NAME}'
 DATABASE_TABLE = 'duplicates'
+
+PREGROUP_FUNCTION = 'DAILY'  # 'DAILY' or None
