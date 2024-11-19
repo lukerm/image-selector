@@ -877,9 +877,7 @@ def activate_deactivate_cells(
         return utils.resize_grid_pressed(
             image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
-            empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM,
-            n_rows=n_rows, n_cols=n_cols,
-            pregroup_func_name='DAILY',
+            empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
         )
 
     # Toggle the state of this button (as it was pressed)
