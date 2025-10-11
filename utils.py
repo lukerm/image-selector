@@ -402,7 +402,7 @@ def undo_last_group(
 
 
 def create_image_grid(
-    n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], empty_img_path: str, pregroup_func_name: str = None,
+    n_row: int, n_col: int, rows_max: int, cols_max: int, image_list: List[str], image_dir: str = None, empty_img_path: str = None, pregroup_func_name: str = None,
 ):
     """
     Create a grid of the same image with n_row rows and n_col columns
@@ -412,6 +412,7 @@ def create_image_grid(
     :param rows_max: int, the maximum available number of rows (e.g. see config.py)
     :param cols_max: int, the maximum available number of columns (e.g. see config.py)
     :param image_list: list, of str, filepaths of the images
+    :param image_dir: str, the filepath where the original images are stored
     :param empty_img_path: str, full filepath to where the empty / default image can be served from (for padding the grid)
     :param pregroup_func_name: str, the identifier name of the function to use for pre-grouping images (e.g. 'DAILY')
     :return: html.Div, containing a grid of images of size n_row x n_col

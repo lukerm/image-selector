@@ -280,7 +280,8 @@ app.layout = html.Div(
                         children=utils.create_image_grid(
                             n_row=4, n_col=4,
                             rows_max=ROWS_MAX, cols_max=COLS_MAX,
-                            image_list=config.IMAGE_SRCS, empty_img_path=config.EMPTY_IMG_PATH,
+                            image_list=config.IMAGE_SRCS, image_dir=None,
+                            empty_img_path=config.EMPTY_IMG_PATH,
                             pregroup_func_name=PREGROUP_FUNCTION,
                         ),
                         style={'width': '50vw', 'height': 'auto', 'border-style': 'solid',}
@@ -753,7 +754,8 @@ def create_reactive_image_grid(n_row, n_col, image_list, image_data, image_path)
     return utils.create_image_grid(
         n_row=n_row, n_col=n_col,
         rows_max=ROWS_MAX, cols_max=COLS_MAX,
-        image_list=image_list, empty_img_path=config.EMPTY_IMG_PATH,
+        image_list=image_list, image_dir=image_path,
+        empty_img_path=config.EMPTY_IMG_PATH,
         pregroup_func_name=PREGROUP_FUNCTION,
     )
 
