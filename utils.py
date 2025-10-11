@@ -435,6 +435,45 @@ def create_image_grid(
                 if my_re_result and my_re_result.group(1) == first_date:
                     pregrouped_images.append(img_fname)
 
+    elif pregroup_func_name == 'TIME_SHRINKING':
+
+        # Parameters
+        max_images_threshold = 21  # hard-code !
+        time_windows = [24, 2, 1, 0.5, 1/12]  # Time windows in hours: 24h, 2h, 1h, 0.5h, 5min
+
+        # Pre-calculate all image timestamps once
+        image_times = []
+        for img_path in image_list:
+            _, img_fname = os.path.split(img_path)
+            img_time = get_image_taken_date(image_dir or '/', img_fname)
+            image_times.append(img_time)
+
+        first_img_time = image_times[0]
+
+        if first_img_time is not None:
+            print("TIME_SHRINKING: Pre-grouping images")
+            # Try each time window, starting from largest
+            for time_window_hours in time_windows:
+                candidate_images = []
+                time_window_end = first_img_time + timedelta(hours=time_window_hours)
+
+                for img_path, img_time in zip(image_list, image_times):
+                    if img_time is not None and first_img_time <= img_time < time_window_end:
+                        candidate_images.append(img_path)
+
+                # Use this window if there aren't too many images
+                if len(candidate_images) <= max_images_threshold:
+                    pregrouped_images = candidate_images
+                    window_str = f"{time_window_hours}h" if time_window_hours >= 1 else f"{int(time_window_hours * 60)}min"
+                    print(f"TIME_SHRINKING: Using {window_str} window with {len(candidate_images)} images")
+                    break
+                # If this is the smallest window, use it regardless of size
+                elif time_window_hours == time_windows[-1]:
+                    pregrouped_images = candidate_images
+                    window_str = f"{time_window_hours}h" if time_window_hours >= 1 else f"{int(time_window_hours * 60)}min"
+                    print(f"TIME_SHRINKING: Using smallest window ({window_str}) with {len(candidate_images)} images")
+                    break
+
     grid = []
     for i in range(rows_max):
         row = []
