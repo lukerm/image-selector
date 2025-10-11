@@ -474,6 +474,10 @@ def create_image_grid(
                     print(f"TIME_SHRINKING: Using smallest window ({window_str}) with {len(candidate_images)} images")
                     break
 
+    # This resets the pre-groups to None for a single image, so that the no-grouped-image shortcut still works (for image in focus)
+    if len(pregrouped_images) == 1:
+        pregrouped_images = None
+
     grid = []
     for i in range(rows_max):
         row = []
