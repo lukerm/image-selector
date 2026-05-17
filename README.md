@@ -31,7 +31,9 @@ The app is built on top of [`Dash`](https://dash.plot.ly/) by plotly. To install
 
 ```bash
 git clone git@github.com:lukerm/image-selector && cd image-selector
-pip install -r requirements.txt
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 In order to get a feel for how the app works, run:
