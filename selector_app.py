@@ -854,8 +854,11 @@ def activate_deactivate_cells(
     image_size_list = [size for i, size in enumerate(image_size_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
+    # Note: in Dash >= 2, the initial firing populates `triggered` with prop_id '.' and
+    # value None for every input, so we additionally require at least one non-None value
+    # to consider the callback as having been triggered by a real user action.
     context = dash.callback_context
-    if not context.triggered:
+    if not context.triggered or not any(prop['value'] for prop in context.triggered):
         return utils.resize_grid_pressed(
             image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
