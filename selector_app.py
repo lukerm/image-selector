@@ -181,7 +181,7 @@ app.layout = html.Div(
                     ]),
                 ]),
                 dbc.ModalFooter(
-                    dbc.Button("Close", id="hide-shortcuts", className="ml-auto")
+                    dbc.Button("Close", id="hide-shortcuts", className="ms-auto")
                 ),
             ], id="modal"),
             dcc.Upload(
