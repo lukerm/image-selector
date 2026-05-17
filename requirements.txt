@@ -1,7 +1,7 @@
 dash==4.1.0
 dash_bootstrap_components==2.0.4
 Flask-Compress==1.9.0
-pandas~=2.1.0
+pandas==3.0.2
 pillow==12.2.0
 psycopg2-binary==2.9.12
-SQLAlchemy==1.4.54
+SQLAlchemy==2.0.49

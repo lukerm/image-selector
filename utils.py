@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from sqlalchemy import create_engine
+from sqlalchemy import bindparam, create_engine, text
 from PIL import Image
 
 import pandas as pd
@@ -236,7 +236,6 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
     assert N == len(filename_list)
 
     engine = create_engine(database_uri)
-    cnxn = engine.connect()
 
     # The group's ID is made unique by using the timestamp (up to milliseconds)
     modified_time = datetime.now()
@@ -255,8 +254,10 @@ def send_to_database(database_uri, database_table, image_path, filename_list, ke
         'picture_taken_time': date_taken_list,
     })
 
-    df_to_send.to_sql(database_table, cnxn, if_exists='append', index=False)
-    cnxn.close()
+    # SQLAlchemy 2.x: pass the engine (not a bare connection) so pandas manages
+    # the transaction itself; an unwrapped `engine.connect()` no longer auto-commits.
+    df_to_send.to_sql(database_table, engine, if_exists='append', index=False)
+    engine.dispose()
 
 
 def delete_from_database(database_uri, database_table, image_path, filename_list, image_backup_path):
@@ -274,19 +275,19 @@ def delete_from_database(database_uri, database_table, image_path, filename_list
     """
 
     engine = create_engine(database_uri)
-    cnxn = engine.connect()
 
     # Calculate the path where the image is backed up to (i.e. raw data)
     img_backup_path, _ = get_backup_path(image_path, image_backup_path)
     img_backup_path = img_backup_path.replace(os.path.expanduser('~'), '~')  # save with soft-coded path (cf commit 2743a7ab)
 
-    delete_query = f'''
+    delete_query = text(f'''
                     DELETE FROM {database_table}
-                    WHERE directory_name=%(directory_name)s
-                    AND filename IN %(filenames)s
-                    '''
-    cnxn.execute(delete_query, {'directory_name': img_backup_path, 'filenames': tuple(filename_list)})
-    cnxn.close()
+                    WHERE directory_name = :directory_name
+                    AND filename IN :filenames
+                    ''').bindparams(bindparam('filenames', expanding=True))
+    with engine.begin() as cnxn:
+        cnxn.execute(delete_query, {'directory_name': img_backup_path, 'filenames': list(filename_list)})
+    engine.dispose()
 
 
 def record_grouped_data(
