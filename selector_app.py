@@ -458,7 +458,8 @@ def update_image_path_selector(contents_list, filenames_list):
     [
      State('choose-image-path', 'value'),
      State('choose-image-path', 'options'),
-    ]
+    ],
+    prevent_initial_call=True,
 )
 def load_images(n, dropdown_value, dropdown_opts):
     """
@@ -538,7 +539,8 @@ def load_images(n, dropdown_value, dropdown_opts):
      State('image-meta-data', 'data'),
      State('loaded-image-path', 'data'),
      State('n_images', 'data'),
-    ] + ALL_TD_ID_STATES
+    ] + ALL_TD_ID_STATES,
+    prevent_initial_call=True,
 )
 def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
