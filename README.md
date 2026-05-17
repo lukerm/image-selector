@@ -7,6 +7,8 @@
 Duplicate photos are annoying and unwanted. Wouldn't you rather make those post-holiday rundowns with the family as impressive (short) as possible? The burden of boiling your photo set
 down to the most memorable and ones with the best angle is greatly reduced by this app. It works because you can visualize all images _together_ in the order they were taken.
 
+I now use my Dash app routinely after every holiday, as it makes the deduplication process much faster, yielding a cleaner set of photos without maxing out your hard drive!
+
 First, select the folder that contains the images you want to edit. Confirm that the folder is correct in the dropdown menu, then click "Load images". This may take some time if there
 are many images or they are very high resolution.
 
@@ -29,7 +31,9 @@ The app is built on top of [`Dash`](https://dash.plot.ly/) by plotly. To install
 
 ```bash
 git clone git@github.com:lukerm/image-selector && cd image-selector
-pip install -r requirements.txt
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 In order to get a feel for how the app works, run:
@@ -90,4 +94,4 @@ Please heed the following notes:
    * In case of a power outage or app failure, discarded duplicates will still be removed from your file system (and labels will persist in the database), 
      but it will not be possible to continue editing the folder from where you left off.
 
-
+If you like this project, please hit the ⭐ button!

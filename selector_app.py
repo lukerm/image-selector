@@ -67,9 +67,8 @@ import shutil
 from datetime import date, datetime
 
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -181,7 +180,7 @@ app.layout = html.Div(
                     ]),
                 ]),
                 dbc.ModalFooter(
-                    dbc.Button("Close", id="hide-shortcuts", className="ml-auto")
+                    dbc.Button("Close", id="hide-shortcuts", className="ms-auto")
                 ),
             ], id="modal"),
             dcc.Upload(
@@ -460,7 +459,8 @@ def update_image_path_selector(contents_list, filenames_list):
     [
      State('choose-image-path', 'value'),
      State('choose-image-path', 'options'),
-    ]
+    ],
+    prevent_initial_call=True,
 )
 def load_images(n, dropdown_value, dropdown_opts):
     """
@@ -473,12 +473,6 @@ def load_images(n, dropdown_value, dropdown_opts):
 
     Note: It fails to load if it finds that the backup folder already exists, as this implies the folder was worked before
     """
-
-    # Prevent the update if 'confirm-load-directory' Button has never been clicked before
-    context = dash.callback_context
-    if context.triggered[0]['prop_id'] == 'confirm-load-directory.n_clicks':
-        if context.triggered[0]['value'] is None:
-            raise PreventUpdate
 
     opts = {d['value']: d['label'] for d in dropdown_opts}
     image_dir = opts[dropdown_value]
@@ -543,7 +537,8 @@ def load_images(n, dropdown_value, dropdown_opts):
      State('image-meta-data', 'data'),
      State('loaded-image-path', 'data'),
      State('n_images', 'data'),
-    ] + ALL_TD_ID_STATES
+    ] + ALL_TD_ID_STATES,
+    prevent_initial_call=True,
 )
 def complete_or_undo_image_group(n_group, n_undo, n_rows, n_cols, image_list, image_data, image_path, n_images, *args):
     """
@@ -859,10 +854,13 @@ def activate_deactivate_cells(
     image_size_list = [size for i, size in enumerate(image_size_list) if not flat_mask[i]]
 
     # Find the button that triggered this callback (if any)
+    # Note: in Dash >= 2, the initial firing populates `triggered` with prop_id '.' and
+    # value None for every input, so we additionally require at least one non-None value
+    # to consider the callback as having been triggered by a real user action.
     context = dash.callback_context
-    if not context.triggered:
+    if not context.triggered or not any(prop['value'] for prop in context.triggered):
         return utils.resize_grid_pressed(
-            image_list=image_list,
+            image_list=image_list, image_size_list=image_size_list,
             rows_max=ROWS_MAX, cols_max=COLS_MAX,
             empty_image=EMPTY_IMAGE, zoom_img_style=config.IMG_STYLE_ZOOM
         )
@@ -952,4 +950,4 @@ if __name__ == '__main__':
     global program_args
     program_args = parser.parse_args()
 
-    app.run_server(debug=False)
+    app.run(debug=False)
