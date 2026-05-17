@@ -18,7 +18,7 @@ from PIL import Image
 
 import pandas as pd
 
-import dash_html_components as html
+from dash import html
 
 
 # File manipulations #
